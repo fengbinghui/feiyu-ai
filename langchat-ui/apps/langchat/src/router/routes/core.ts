@@ -73,6 +73,18 @@ const coreRoutes: RouteRecordRaw[] = [
       },
     ],
   },
+  // 公开分享页：无需登录、独立布局（核心路由，不进入权限拦截）
+  {
+    component: () => import('#/views/share/index.vue'),
+    meta: {
+      hideInBreadcrumb: true,
+      hideInMenu: true,
+      hideInTab: true,
+      title: 'chat.share.title',
+    },
+    name: 'Share',
+    path: '/share/:shareId',
+  },
 ];
 
 export { coreRoutes, fallbackNotFoundRoute };

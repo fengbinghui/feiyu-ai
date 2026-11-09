@@ -27,6 +27,8 @@ import {
   CHAT_ROLE,
   CHAT_STREAM_EVENT,
   createChatCompletionStreamApi,
+  feedbackMessageApi,
+  generateConversationTitleApi,
   listConversationApi,
   listConversationMessagesApi,
 } from '#/api/aigc/chat';
@@ -65,6 +67,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
   const draftMessage = ref('');
   const historyAvailable = ref(enableHistory);
   const streamAbortController = ref<AbortController | null>(null);
+  /** 已尝试自动生成标题的会话（避免同一会话重复调用） */
+  const titleAttemptedIds = new Set<string>();
 
   const filteredAgents = computed(() => {
     const query = keyword.value.trim().toLowerCase();
@@ -95,6 +99,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
     conversations.value.map((item) => ({
       id: item.id ?? '',
       meta: item.updateTime ? formatRelativeTime(item.updateTime) : '',
+      shareId: item.shareId || '',
+      shared: Boolean(item.shareId),
       subtitle: item.shareId
         ? $t('chat.runtime.subtitleShare', { id: item.shareId })
         : $t('chat.runtime.subtitleNormal'),
@@ -106,6 +112,8 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
     messageRecords.value.map((item) => ({
       content: item.message || '',
       id: item.id ?? '',
+      likes: item.likes === true || item.likes === false ? item.likes : null,
+      messageId: item.id ?? '',
       meta: item.createTime ? formatRelativeTime(item.createTime) : '',
       role: normalizeRole(item.role),
     })),
@@ -363,6 +371,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
         controller.signal,
       );
       await syncMessagesAfterStream(agentId);
+      await maybeGenerateConversationTitle(agentId);
     } catch (error) {
       const description =
         error instanceof Error
@@ -389,6 +398,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
     contextSections,
     conversationLoading,
     conversationSidebarItems,
+    conversations,
     conversationSubtitle,
     draftMessage,
     filteredAgents,
@@ -403,6 +413,7 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
     lookups,
     messageItems,
     messageLoading,
+    refreshConversations: () => loadConversations(selectedAgentId.value),
     sending,
     runtimeEvents,
     sendMessage,
@@ -411,7 +422,122 @@ export function useChatRuntime(options: UseChatRuntimeOptions = {}) {
     selectedAgent,
     selectedAgentId,
     selectedConversationId,
+    updateMessageFeedback,
   };
+
+  /** 默认标题（新会话 / 新对话 / 未命名 / 首条消息截断）才允许 AI 自动生成 */
+  function isDefaultConversationTitle(title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      return true;
+    }
+    if (
+      trimmed === $t('chat.conversation.untitled') ||
+      trimmed === '新对话' ||
+      trimmed === 'New chat'
+    ) {
+      return true;
+    }
+    const prefix = String(
+      $t('chat.conversation.newTitle', { time: '' }),
+    ).trim();
+    if (prefix && trimmed.startsWith(prefix)) {
+      return true;
+    }
+    if (trimmed.startsWith('新会话') || trimmed.startsWith('新对话')) {
+      return true;
+    }
+    // 首条消息截断标题：标题与首条用户消息前缀一致
+    const firstUserMessage = messageRecords.value.find(
+      (item) => normalizeRole(item.role) === CHAT_ROLE.USER && item.message,
+    );
+    const firstContent = String(firstUserMessage?.message || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (
+      firstContent.length > trimmed.length &&
+      firstContent.startsWith(trimmed) &&
+      trimmed.length >= 6
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 首轮回复完成后，若会话标题仍为默认值则调用 AI 生成标题。
+   * 手动改名后的标题不再是默认值，因此不会被覆盖。
+   */
+  async function maybeGenerateConversationTitle(agentId: string) {
+    if (!enableHistory) {
+      return;
+    }
+    const conversationId = selectedConversationId.value;
+    if (!conversationId) {
+      return;
+    }
+    const conversation = conversations.value.find(
+      (item) => item.id === conversationId,
+    );
+    if (!conversation) {
+      return;
+    }
+    if (!isDefaultConversationTitle(String(conversation.title || ''))) {
+      return;
+    }
+    if (titleAttemptedIds.has(conversationId)) {
+      return;
+    }
+    titleAttemptedIds.add(conversationId);
+    try {
+      const result = await generateConversationTitleApi(conversationId);
+      const title = String(result?.title || '').trim();
+      if (title) {
+        await loadConversations(agentId);
+      }
+    } catch {
+      // 自动标题失败不打断对话
+    }
+  }
+
+  /** 本地乐观更新消息点赞状态 */
+  function applyMessageLikes(messageId: string, likes: boolean | null) {
+    messageRecords.value = messageRecords.value.map((item) => {
+      if (item.id !== messageId) {
+        return item;
+      }
+      return {
+        ...item,
+        likes: likes === null ? undefined : likes,
+      };
+    });
+  }
+
+  /**
+   * 提交消息反馈（乐观更新，失败回滚并提示）
+   */
+  async function updateMessageFeedback(
+    messageId: string,
+    likes: boolean | null,
+  ) {
+    const target = messageRecords.value.find((item) => item.id === messageId);
+    if (!target) {
+      return;
+    }
+    const previous =
+      target.likes === true || target.likes === false ? target.likes : null;
+    if (previous === likes) {
+      return;
+    }
+    applyMessageLikes(messageId, likes);
+    try {
+      await feedbackMessageApi(messageId, likes);
+    } catch (error) {
+      applyMessageLikes(messageId, previous);
+      messageApi.error($t('chat.feedback.updateFailed'));
+      throw error;
+    }
+  }
 
   function applyStreamEvent(
     event: AgentChatStreamEvent,

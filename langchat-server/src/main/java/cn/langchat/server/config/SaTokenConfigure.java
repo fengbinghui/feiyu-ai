@@ -31,6 +31,9 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     /** 注册开关查询接口放行（注册页需要先读取开关状态）。 */
     private static final String REGISTER_ENABLED_PATH = "/api/v1/auth/register-enabled";
 
+    /** 会话公开分享查看接口放行（分享页无需登录即可查看）。 */
+    private static final String CHAT_SHARE_VIEW_PATH = "/api/v1/chat/share/**";
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> {
@@ -39,9 +42,9 @@ public class SaTokenConfigure implements WebMvcConfigurer {
                     if ("OPTIONS".equalsIgnoreCase(method)) {
                         return;
                     }
-                    // 除登录 / 注册相关公开接口外，所有 /api/** 接口一律要求登录。
+                    // 除登录 / 注册 / 会话公开分享等公开接口外，所有 /api/** 接口一律要求登录。
                     SaRouter.match("/api/**")
-                            .notMatch(LOGIN_PATH, REGISTER_PATH, REGISTER_ENABLED_PATH)
+                            .notMatch(LOGIN_PATH, REGISTER_PATH, REGISTER_ENABLED_PATH, CHAT_SHARE_VIEW_PATH)
                             .check(route -> StpUtil.checkLogin());
                 })
                 // 开启注解鉴权，使 @SaCheckLogin / @SaCheckPermission 生效。

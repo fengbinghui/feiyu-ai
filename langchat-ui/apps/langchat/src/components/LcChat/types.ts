@@ -68,6 +68,10 @@ export interface LcChatSidebarItem {
   description?: string;
   id: string;
   meta?: string;
+  /** 会话分享标识（存在即已分享） */
+  shareId?: string;
+  /** 是否已创建公开分享 */
+  shared?: boolean;
   subtitle?: string;
   title: string;
 }
@@ -90,6 +94,17 @@ export interface LcChatContextSection {
 export interface LcChatMessageItem {
   content: string;
   id: string;
+  /** 后端消息 ID（持久化消息才有，用于点赞点踩） */
+  messageId?: string;
+  /** 当前点赞状态：true=赞，false=踩，null=未评价 */
+  likes?: boolean | null;
   meta?: string;
   role: 'assistant' | 'system' | 'tool' | 'user';
+}
+
+/** 消息反馈事件负载。 */
+export interface LcChatFeedbackPayload {
+  /** true=赞，false=踩，null=取消 */
+  likes: boolean | null;
+  messageId: string;
 }

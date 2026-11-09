@@ -34,6 +34,47 @@
     "backToBottom": "Back to bottom",
     "loadingHistory": "Loading messages..."
   },
+  "feedback": {
+    "like": "Helpful",
+    "dislike": "Not helpful",
+    "updateFailed": "Failed to submit feedback, please try again later"
+  },
+  "share": {
+    "action": "Share",
+    "title": "Share conversation",
+    "description": "Create a public link. Anyone with the link can view this conversation in read-only mode.",
+    "badge": "Shared",
+    "publicHint": "The link is accessible without signing in and becomes invalid immediately after unsharing.",
+    "notShared": "This conversation has not been shared yet",
+    "create": "Create share link",
+    "createSuccess": "Share link created",
+    "createFailed": "Failed to create share link, please try again later",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "copyFailed": "Copy failed, please copy manually",
+    "unshare": "Unshare",
+    "unshareSuccess": "Sharing cancelled",
+    "unshareFailed": "Failed to cancel sharing, please try again later",
+    "close": "Close",
+    "noConversation": "Please select a conversation first"
+  },
+  "export": {
+    "action": "Export",
+    "success": "Conversation exported as Markdown",
+    "failed": "Export failed, please try again later",
+    "empty": "No conversation available to export"
+  },
+  "publicShare": {
+    "loading": "Loading shared conversation…",
+    "notFoundTitle": "This share does not exist or has expired",
+    "notFoundDescription": "The share may have been cancelled by its creator, or the link is invalid.",
+    "print": "Print / Save as PDF",
+    "poweredBy": "Powered by Feiyu AI",
+    "backHome": "Back home",
+    "agentFallback": "Feiyu AI",
+    "user": "User",
+    "noMessages": "This conversation has no messages to display"
+  },
   "conversation": {
     "untitled": "Untitled conversation",
     "deleteTitle": "Delete conversation",

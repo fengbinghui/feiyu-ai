@@ -2,6 +2,7 @@
 import type { AigcAgent } from '#/api/aigc/agent';
 import type {
   LcChatMessage,
+  LcChatMessageItem,
   LcChatSendPayload,
 } from '#/components/LcChat/types';
 
@@ -9,16 +10,34 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
-import { ArrowLeft, Bot, Check, Plus, Search, SquarePen, Trash2, X } from '@vben/icons';
+import {
+  ArrowLeft,
+  Bot,
+  Check,
+  Copy,
+  Download,
+  Link2,
+  Plus,
+  Search,
+  Share2,
+  SquarePen,
+  Trash2,
+  X,
+} from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { NButton, NInput } from 'naive-ui';
+import { NButton, NInput, NSpin } from 'naive-ui';
+
+import { useVbenModal } from '@vben-core/popup-ui';
 
 import { dialog, message } from '#/adapter/naive';
 import {
   createConversationApi,
+  exportConversationMarkdownApi,
   removeConversationApi,
-  updateConversationApi,
+  shareConversationApi,
+  unshareConversationApi,
+  updateConversationTitleApi,
 } from '#/api/aigc/chat';
 import LcChat from '#/components/LcChat/index.vue';
 import LcStatusTag from '#/components/LcStatusTag/index.vue';
@@ -34,11 +53,13 @@ const chatRef = ref<InstanceType<typeof LcChat> | null>(null);
 
 const {
   conversationSidebarItems,
+  conversations,
   draftMessage,
   initializeRuntime,
   loadConversations,
   messageLoading,
   messageItems,
+  refreshConversations,
   selectedAgent,
   selectedAgentId,
   selectedConversationId,
@@ -46,9 +67,156 @@ const {
   sendMessage,
   selectAgent,
   selectConversation,
+  updateMessageFeedback,
 } = useChatRuntime({
   enableHistory: true,
 });
+
+// ---------- 分享 / 导出 ----------
+const shareLoading = ref(false);
+const shareCopied = ref(false);
+const exportLoading = ref(false);
+
+const activeConversation = computed(() =>
+  conversations.value.find(
+    (item) => item.id === selectedConversationId.value,
+  ),
+);
+
+const currentShareId = computed(() => activeConversation.value?.shareId || '');
+
+/** 根据路由模式拼接公开分享链接 */
+const shareUrl = computed(() => {
+  const shareId = currentShareId.value;
+  if (!shareId) {
+    return '';
+  }
+  const origin = window.location.origin;
+  const base = String(import.meta.env.VITE_BASE || '/');
+  if (import.meta.env.VITE_ROUTER_HISTORY === 'hash') {
+    return `${origin}${base}#/share/${shareId}`;
+  }
+  return `${origin}${base.replace(/\/$/, '')}/share/${shareId}`;
+});
+
+const [ShareModal, shareModalApi] = useVbenModal({
+  onCancel() {
+    shareModalApi.close();
+  },
+});
+
+watch(
+  () => $t('chat.share.title'),
+  (value) => {
+    shareModalApi.setState({ title: value });
+  },
+  { immediate: true },
+);
+
+async function openShareModal() {
+  if (!selectedConversationId.value) {
+    message.warning($t('chat.share.noConversation'));
+    return;
+  }
+  shareCopied.value = false;
+  shareModalApi.open();
+  if (!currentShareId.value) {
+    await createShare();
+  }
+}
+
+async function createShare() {
+  const conversationId = selectedConversationId.value;
+  if (!conversationId || shareLoading.value) {
+    return;
+  }
+  shareLoading.value = true;
+  try {
+    await shareConversationApi(conversationId);
+    await refreshConversations();
+    message.success($t('chat.share.createSuccess'));
+  } catch {
+    message.error($t('chat.share.createFailed'));
+  } finally {
+    shareLoading.value = false;
+  }
+}
+
+async function copyShareLink() {
+  const url = shareUrl.value;
+  if (!url) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    shareCopied.value = true;
+    message.success($t('chat.share.copied'));
+    setTimeout(() => {
+      shareCopied.value = false;
+    }, 1500);
+  } catch {
+    message.error($t('chat.share.copyFailed'));
+  }
+}
+
+async function unshare() {
+  const conversationId = selectedConversationId.value;
+  if (!conversationId || shareLoading.value) {
+    return;
+  }
+  shareLoading.value = true;
+  try {
+    await unshareConversationApi(conversationId);
+    await refreshConversations();
+    message.success($t('chat.share.unshareSuccess'));
+  } catch {
+    message.error($t('chat.share.unshareFailed'));
+  } finally {
+    shareLoading.value = false;
+  }
+}
+
+async function handleExport() {
+  const conversationId = selectedConversationId.value;
+  if (!conversationId) {
+    message.warning($t('chat.export.empty'));
+    return;
+  }
+  if (exportLoading.value) {
+    return;
+  }
+  exportLoading.value = true;
+  try {
+    const { blob, filename } = await exportConversationMarkdownApi(
+      conversationId,
+    );
+    const fallbackName = `${activeConversationTitle.value || 'conversation'}.md`;
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename || fallbackName;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    message.success($t('chat.export.success'));
+  } catch {
+    message.error($t('chat.export.failed'));
+  } finally {
+    exportLoading.value = false;
+  }
+}
+
+async function handleFeedback(payload: {
+  likes: boolean | null;
+  messageId: string;
+}) {
+  try {
+    await updateMessageFeedback(payload.messageId, payload.likes);
+  } catch {
+    // 失败提示与回滚已由 runtime 处理
+  }
+}
 
 const routeAgentId = computed(() => String(route.params.agentId || ''));
 
@@ -111,14 +279,15 @@ const marketChatMessages = computed<LcChatMessage[]>(() =>
     .filter(
       (
         item,
-      ): item is {
-        content: string;
-        id: string;
-        role: 'assistant' | 'user';
-      } => item.role === 'assistant' || item.role === 'user',
+      ): item is LcChatMessageItem & { role: 'assistant' | 'user' } =>
+        item.role === 'assistant' || item.role === 'user',
     )
     .map((item) => ({
       content: parseMessageContent(item.content),
+      extra: {
+        likes: item.likes === true || item.likes === false ? item.likes : null,
+        messageId: item.messageId || '',
+      },
       id: item.id,
       role: item.role,
       status: 'completed' as const,
@@ -230,7 +399,7 @@ async function confirmEditConversation(id: string) {
     message.warning($t('chat.conversation.titleRequired'));
     return;
   }
-  await updateConversationApi(id, { title });
+  await updateConversationTitleApi(id, title);
   message.success($t('chat.conversation.titleUpdated'));
   await loadConversations(selectedAgentId.value);
   cancelEditConversation();
@@ -368,6 +537,23 @@ onMounted(prepareRuntime);
               <Search class="size-3.5 text-muted-foreground" />
             </template>
           </NInput>
+          <NButton
+            :loading="exportLoading"
+            secondary
+            size="small"
+            @click="handleExport"
+          >
+            <template #icon>
+              <Download class="size-3.5" />
+            </template>
+            {{ $t('chat.export.action') }}
+          </NButton>
+          <NButton secondary size="small" @click="openShareModal">
+            <template #icon>
+              <Share2 class="size-3.5" />
+            </template>
+            {{ $t('chat.share.action') }}
+          </NButton>
           <NButton secondary size="small" @click="goBackToMarket">
             {{ $t('menu.market') }}
           </NButton>
@@ -436,15 +622,22 @@ onMounted(prepareRuntime);
                   type="button"
                   @click="selectConversation(item.id)"
                 >
-                  <div
-                    :class="
-                      item.id === selectedConversationId
-                        ? 'text-primary'
-                        : 'text-foreground'
-                    "
-                    class="truncate text-[13px] font-medium"
-                  >
-                    {{ item.title }}
+                  <div class="flex min-w-0 items-center gap-1">
+                    <span
+                      :class="
+                        item.id === selectedConversationId
+                          ? 'text-primary'
+                          : 'text-foreground'
+                      "
+                      class="min-w-0 truncate text-[13px] font-medium"
+                    >
+                      {{ item.title }}
+                    </span>
+                    <Link2
+                      v-if="item.shared"
+                      :aria-label="$t('chat.share.badge')"
+                      class="size-3 shrink-0 text-primary/70"
+                    />
                   </div>
                   <div
                     class="mt-0.5 truncate text-[10px] tabular-nums text-muted-foreground"
@@ -530,6 +723,13 @@ onMounted(prepareRuntime);
                 >
                   {{ activeConversationTitle }}
                 </span>
+                <span
+                  v-if="currentShareId"
+                  class="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                >
+                  <Share2 class="size-3" />
+                  {{ $t('chat.share.badge') }}
+                </span>
               </div>
               <div class="mt-0.5 truncate pl-2.5 text-[10px] text-muted-foreground">
                 {{
@@ -558,11 +758,13 @@ onMounted(prepareRuntime);
               :empty-title="
                 selectedAgent?.welcomeMessage || $t('chat.empty.welcome')
               "
+              :enable-feedback="true"
               :loading="messageLoading"
               :placeholder="$t('chat.composer.inputMessage')"
               :show-attachment="true"
               :show-model="false"
               :suggestions="marketSuggestions"
+              @feedback="handleFeedback"
               @send="handleSubmitMessage"
             >
               <template #empty-head>
@@ -590,6 +792,80 @@ onMounted(prepareRuntime);
           </div>
         </section>
       </div>
+
+      <!-- 分享会话弹窗 -->
+      <ShareModal
+        class="w-[520px]"
+        header-class="border-b"
+        :title="$t('chat.share.title')"
+      >
+        <div class="px-1 pb-1">
+          <p class="text-xs leading-5 text-muted-foreground">
+            {{ $t('chat.share.description') }}
+          </p>
+          <div class="mt-3">
+            <NSpin :show="shareLoading">
+              <template v-if="currentShareId">
+                <div
+                  class="flex items-center gap-2 rounded-lg border border-border/80 bg-muted/20 px-3 py-2"
+                >
+                  <Link2 class="size-4 shrink-0 text-muted-foreground" />
+                  <span
+                    class="min-w-0 flex-1 truncate text-xs text-foreground"
+                  >{{ shareUrl }}</span>
+                  <NButton size="tiny" type="primary" @click="copyShareLink">
+                    <template #icon>
+                      <Check v-if="shareCopied" class="size-3" />
+                      <Copy v-else class="size-3" />
+                    </template>
+                    {{
+                      shareCopied
+                        ? $t('chat.share.copied')
+                        : $t('chat.share.copy')
+                    }}
+                  </NButton>
+                </div>
+                <div class="mt-2 flex items-center justify-between gap-2">
+                  <span class="text-[11px] leading-5 text-muted-foreground">
+                    {{ $t('chat.share.publicHint') }}
+                  </span>
+                  <NButton
+                    :loading="shareLoading"
+                    secondary
+                    size="small"
+                    type="error"
+                    @click="unshare"
+                  >
+                    {{ $t('chat.share.unshare') }}
+                  </NButton>
+                </div>
+              </template>
+              <div
+                v-else
+                class="flex flex-col items-center gap-3 py-4 text-center"
+              >
+                <p class="text-xs text-muted-foreground">
+                  {{ $t('chat.share.notShared') }}
+                </p>
+                <NButton
+                  :loading="shareLoading"
+                  type="primary"
+                  @click="createShare"
+                >
+                  {{ $t('chat.share.create') }}
+                </NButton>
+              </div>
+            </NSpin>
+          </div>
+        </div>
+        <template #footer>
+          <div class="flex w-full justify-end gap-2">
+            <NButton @click="shareModalApi.close()">
+              {{ $t('chat.share.close') }}
+            </NButton>
+          </div>
+        </template>
+      </ShareModal>
     </div>
   </Page>
 </template>

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type {
+  LcChatFeedbackPayload,
   LcChatMessage,
   LcChatSendPayload,
   LcChatSuggestion,
@@ -21,6 +22,8 @@ interface Props {
   assistantIcon?: string;
   /** 禁用输入与发送(例如请求进行中) */
   disabled?: boolean;
+  /** 是否展示助手消息点赞/点踩（需消息 extra.messageId 才显示按钮） */
+  enableFeedback?: boolean;
   /** 空状态标题 */
   emptyTitle?: string;
   /** 历史消息加载中(消息区展示 v-loading) */
@@ -44,6 +47,7 @@ const props = withDefaults(defineProps<Props>(), {
   assistantIcon: '',
   disabled: false,
   emptyTitle: undefined,
+  enableFeedback: false,
   initialMessages: () => [],
   loading: false,
   loadingText: undefined,
@@ -55,6 +59,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
+  feedback: [payload: LcChatFeedbackPayload];
   messagesChange: [messages: LcChatMessage[]];
   regenerate: [];
   send: [payload: LcChatSendPayload];
@@ -214,11 +219,13 @@ defineExpose({
             v-for="(item, index) in messages"
             :key="item.id"
             :assistant-icon="assistantIcon"
+            :enable-feedback="enableFeedback"
             :is-last="
               item.role === 'assistant' && index === messages.length - 1
             "
             :message="item"
             :user-avatar="userAvatar"
+            @feedback="(payload) => emit('feedback', payload)"
             @regenerate="emit('regenerate')"
           >
             <template #append>

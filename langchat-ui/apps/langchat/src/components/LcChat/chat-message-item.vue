@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { LcChatMessage } from './types';
+import type { LcChatFeedbackPayload, LcChatMessage } from './types';
 
 import { computed, ref, unref } from 'vue';
 
@@ -9,6 +9,8 @@ import {
   RefreshCw,
   Sparkles,
   Square,
+  ThumbsDown,
+  ThumbsUp,
   User,
   Volume2,
 } from '@vben/icons';
@@ -23,6 +25,8 @@ import './ui/chat-effects.css';
 interface Props {
   /** 助手头像图片地址 */
   assistantIcon?: string;
+  /** 是否展示点赞/点踩（需消息 extra.messageId 才真正显示） */
+  enableFeedback?: boolean;
   /** 是否为最后一条助手消息(决定是否展示重新生成) */
   isLast?: boolean;
   message: LcChatMessage;
@@ -30,9 +34,15 @@ interface Props {
   userAvatar?: string;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  assistantIcon: '',
+  enableFeedback: false,
+  isLast: false,
+  userAvatar: '',
+});
 
 const emit = defineEmits<{
+  feedback: [payload: LcChatFeedbackPayload];
   regenerate: [];
 }>();
 
@@ -43,6 +53,39 @@ const failed = computed(() => props.message.status === 'error');
 const showThinking = computed(() => running.value && !props.message.content);
 /** 流式进行中:交由 markstream 做增量渲染,否则按最终态渲染 */
 const streamDone = computed(() => props.message.status !== 'running');
+
+/** 已持久化的后端消息 ID(本地乐观消息没有) */
+const feedbackMessageId = computed(() => {
+  const value = props.message.extra?.messageId;
+  return typeof value === 'string' ? value : '';
+});
+
+/** 当前点赞状态:true=赞，false=踩，null=未评价 */
+const feedbackLikes = computed<boolean | null>(() => {
+  const value = props.message.extra?.likes;
+  return value === true || value === false ? value : null;
+});
+
+/** 仅已持久化、已完成生成的助手消息展示反馈按钮 */
+const showFeedback = computed(
+  () =>
+    props.enableFeedback &&
+    !isUser.value &&
+    !running.value &&
+    Boolean(feedbackMessageId.value),
+);
+
+function handleFeedback(likes: boolean) {
+  if (!feedbackMessageId.value) {
+    return;
+  }
+  // 再次点击同一项时取消评价
+  const next = feedbackLikes.value === likes ? null : likes;
+  emit('feedback', {
+    likes: next,
+    messageId: feedbackMessageId.value,
+  });
+}
 
 const copied = ref(false);
 const speaking = ref(false);
@@ -174,6 +217,34 @@ function handleSpeak() {
           <Check v-if="copied" class="size-3.5" />
           <Copy v-else class="size-3.5" />
         </button>
+        <template v-if="showFeedback">
+          <button
+            :aria-label="$t('chat.feedback.like')"
+            :class="
+              feedbackLikes === true
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+            class="flex size-6 cursor-pointer items-center justify-center rounded-md transition-colors"
+            type="button"
+            @click="handleFeedback(true)"
+          >
+            <ThumbsUp class="size-3.5" />
+          </button>
+          <button
+            :aria-label="$t('chat.feedback.dislike')"
+            :class="
+              feedbackLikes === false
+                ? 'bg-destructive/10 text-destructive'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            "
+            class="flex size-6 cursor-pointer items-center justify-center rounded-md transition-colors"
+            type="button"
+            @click="handleFeedback(false)"
+          >
+            <ThumbsDown class="size-3.5" />
+          </button>
+        </template>
         <button
           v-if="!isUser && message.content"
           :aria-label="speaking ? $t('chat.message.stopSpeaking') : $t('chat.message.speak')"

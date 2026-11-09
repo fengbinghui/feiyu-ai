@@ -293,6 +293,139 @@ export function listMessageEventsApi(params?: MessageEventQuery) {
   });
 }
 
+/** 消息点赞点踩返回。 */
+export interface MessageFeedbackResult {
+  likes: boolean | null;
+  messageId: string;
+}
+
+/** 创建分享返回。 */
+export interface ConversationShareResult {
+  shareId: string;
+}
+
+/** 公开分享的只读消息。 */
+export interface SharedConversationMessage {
+  content?: string;
+  createTime?: number;
+  role?: string;
+}
+
+/** 公开分享的会话详情。 */
+export interface SharedConversation {
+  agentAvatar?: string;
+  agentId?: string;
+  agentName?: string;
+  createdAt?: number;
+  messages?: SharedConversationMessage[];
+  title?: string;
+}
+
+/**
+ * 点赞 / 点踩（likes=null 表示取消）
+ */
+export function feedbackMessageApi(
+  messageId: string,
+  likes: boolean | null,
+) {
+  return requestClient.post<MessageFeedbackResult>(
+    `/v1/chat/messages/${messageId}/feedback`,
+    { likes },
+  );
+}
+
+/**
+ * 创建会话公开分享
+ */
+export function shareConversationApi(conversationId: string) {
+  return requestClient.post<ConversationShareResult>(
+    `/v1/chat/conversations/${conversationId}/share`,
+  );
+}
+
+/**
+ * 取消会话分享
+ */
+export function unshareConversationApi(conversationId: string) {
+  return requestClient.delete<boolean>(
+    `/v1/chat/conversations/${conversationId}/share`,
+  );
+}
+
+/**
+ * 获取公开分享内容（无需登录）
+ */
+export function getSharedConversationApi(shareId: string) {
+  return requestClient.get<SharedConversation>(`/v1/chat/share/${shareId}`);
+}
+
+/**
+ * 手动更新会话标题（新统一接口）
+ */
+export function updateConversationTitleApi(
+  conversationId: string,
+  title: string,
+) {
+  return requestClient.put<boolean>(
+    `/v1/chat/conversations/${conversationId}/title`,
+    { title },
+  );
+}
+
+/**
+ * AI 生成会话标题（≤16 字）
+ */
+export function generateConversationTitleApi(conversationId: string) {
+  return requestClient.post<{ title?: string }>(
+    `/v1/chat/conversations/${conversationId}/title/generate`,
+  );
+}
+
+function parseDownloadFilename(disposition: string) {
+  if (!disposition) {
+    return '';
+  }
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      // noop
+    }
+  }
+  const match = /filename="?([^";]+)"?/i.exec(disposition);
+  return match?.[1] ? match[1].trim() : '';
+}
+
+/**
+ * 导出会话为 Markdown（带鉴权 fetch，解析 Content-Disposition 文件名）
+ */
+export async function exportConversationMarkdownApi(conversationId: string) {
+  const response = await fetch(
+    resolveRequestClientUrl(`/v1/chat/conversations/${conversationId}/export`),
+    {
+      headers: getRequestClientAuthHeaders(),
+      method: 'GET',
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(
+      errorText ||
+        $t('chat.runtime.errors.apiRequestFailed', {
+          status: response.status,
+        }),
+    );
+  }
+
+  const blob = await response.blob();
+  const filename = parseDownloadFilename(
+    response.headers.get('Content-Disposition') || '',
+  );
+  return { blob, filename };
+}
+
 /**
  * 提交一次对话请求。
  */
