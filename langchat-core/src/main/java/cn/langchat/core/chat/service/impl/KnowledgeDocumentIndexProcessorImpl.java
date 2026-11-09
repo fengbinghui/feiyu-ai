@@ -26,6 +26,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -72,6 +73,10 @@ public class KnowledgeDocumentIndexProcessorImpl implements KnowledgeDocumentInd
             EmbeddingStore<TextSegment> embeddingStore = vectorStoreFactory.getStore(vectorStore);
             EmbeddingModel embeddingModel = langChain4jModelFactory.getEmbeddingModel(embeddingModelConfig);
 
+            // 重新向量化前必须先清理该文档在向量库中的旧向量，再替换 MySQL 分段：
+            // 分段重建会生成全新的 UUID，若只删 MySQL 分段，旧向量会永久残留，
+            // 导致行数翻倍且 RAG 仍能召回旧内容（旧分段 id / docsId 元数据双通道清理）。
+            clearStaleVectors(embeddingStore, docsId);
             aigcSegmentService.lambdaUpdate().eq(AigcSegment::getDocsId, docsId).remove();
             List<AigcSegment> segments = createSegments(docs, chunkSize, overlapSize);
             aigcSegmentService.saveBatch(segments);
@@ -184,6 +189,35 @@ public class KnowledgeDocumentIndexProcessorImpl implements KnowledgeDocumentInd
         return segments;
     }
 
+    /**
+     * 清理文档在向量库中的历史向量。
+     *
+     * <p>主通道：按 MySQL 中该文档的旧分段 id 精确删除；
+     * 兜底通道：按 {@code docsId} 元数据过滤删除，覆盖历史版本遗漏清理的孤儿向量。
+     * 部分向量库（如 Milvus）的 Filter 删除可能不受支持，此时仅记录告警、不影响本次重建。</p>
+     *
+     * @param embeddingStore 向量库实例
+     * @param docsId 文档 ID
+     */
+    private void clearStaleVectors(EmbeddingStore<TextSegment> embeddingStore, String docsId) {
+        List<String> staleSegmentIds = aigcSegmentService.lambdaQuery()
+                .eq(AigcSegment::getDocsId, docsId)
+                .list()
+                .stream()
+                .map(AigcSegment::getId)
+                .toList();
+        if (!staleSegmentIds.isEmpty()) {
+            embeddingStore.removeAll(staleSegmentIds);
+            log.info("已清理文档旧分段向量，docsId={}, segmentCount={}", docsId, staleSegmentIds.size());
+        }
+        try {
+            embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("docsId").isEqualTo(docsId));
+            log.info("已按 docsId 兜底清理文档历史残留向量，docsId={}", docsId);
+        } catch (Exception ex) {
+            log.warn("按 docsId 兜底清理历史残留向量失败（不影响本次重建），docsId={}", docsId, ex);
+        }
+    }
+
     private void embedSegments(
             AigcKnowledge knowledge,
             AigcDocs docs,
@@ -194,11 +228,20 @@ public class KnowledgeDocumentIndexProcessorImpl implements KnowledgeDocumentInd
         List<TextSegment> textSegments = segments.stream()
                 .map(segment -> TextSegment.from(segment.getContent(), segmentMetadataFactory.build(knowledge, docs, segment)))
                 .toList();
-        Response<List<Embedding>> response = embeddingModel.embedAll(textSegments);
-        List<Embedding> embeddings = response.content();
         List<String> ids = segments.stream().map(AigcSegment::getId).toList();
-        embeddingStore.removeAll(ids);
-        embeddingStore.addAll(ids, embeddings, textSegments);
+        try {
+            Response<List<Embedding>> response = embeddingModel.embedAll(textSegments);
+            List<Embedding> embeddings = response.content();
+            embeddingStore.addAll(ids, embeddings, textSegments);
+        } catch (RuntimeException ex) {
+            // 向量写入失败时 best-effort 清理可能已写入的部分向量，避免留下半成品数据。
+            try {
+                embeddingStore.removeAll(ids);
+            } catch (Exception cleanupEx) {
+                log.warn("向量写入失败后清理部分向量失败（忽略），docsId={}", docs.getId(), cleanupEx);
+            }
+            throw ex;
+        }
     }
 
     private void updateDocsStatus(
