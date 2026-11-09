@@ -1,6 +1,6 @@
 import { requestClient } from '#/api/request';
 
-import type { BaseEntity } from './_shared';
+import type { BaseEntity, PageParams, PageResult } from './_shared';
 
 /**
  * 技能实体。技能以标准化技能包（根目录含 SKILL.md）形式管理，
@@ -47,6 +47,11 @@ export const skillApi = {
     }),
 
   list: () => requestClient.get<AigcSkill[]>('/v1/aigc/skills'),
+  /** 服务端分页列表：GET /v1/aigc/skills/page（下拉/关联选择仍用 list()）。 */
+  page: (params?: PageParams) =>
+    requestClient.get<PageResult<AigcSkill>>('/v1/aigc/skills/page', {
+      params,
+    }),
   listFiles: (id: string) =>
     requestClient.get<SkillFileNode[]>(`/v1/aigc/skills/${id}/files`),
   readFile: (id: string, path: string) =>

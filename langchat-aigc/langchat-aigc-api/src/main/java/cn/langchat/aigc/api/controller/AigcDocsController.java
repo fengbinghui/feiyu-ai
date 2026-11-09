@@ -1,6 +1,7 @@
 package cn.langchat.aigc.api.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.langchat.aigc.api.model.request.DocsSaveRequest;
 import cn.langchat.aigc.biz.entity.AigcDocs;
 import cn.langchat.aigc.biz.entity.AigcKnowledge;
 import cn.langchat.aigc.biz.entity.AigcOss;
@@ -12,16 +13,23 @@ import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
 import cn.langchat.common.core.audit.AuditLog;
 import cn.langchat.common.core.audit.AuditLogType;
+import cn.langchat.common.core.page.PageQuery;
+import cn.langchat.common.core.page.PageResult;
 import cn.langchat.common.exception.BizException;
 import cn.langchat.common.oss.model.OssObject;
 import cn.langchat.common.oss.model.OssUploadRequest;
 import cn.langchat.common.oss.service.OssService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -71,6 +79,41 @@ public class AigcDocsController {
                 .eq(knowledgeId != null && !knowledgeId.isBlank(), AigcDocs::getKnowledgeId, knowledgeId)
                 .orderByDesc(AigcDocs::getCreateTime)
                 .list());
+    }
+
+    /**
+     * 分页查询文档列表。
+     *
+     * @param pageNo 页码，默认 1
+     * @param pageSize 页大小，默认 20、上限 200
+     * @param keyword 关键字（文档名称模糊匹配）
+     * @param knowledgeId 知识库 ID（精确匹配），保留原有列表接口的过滤能力
+     * @param embedStatus 向量化状态（精确匹配，前端文档列表状态筛选）
+     */
+    @GetMapping("/page")
+    public ApiResponse<PageResult<AigcDocs>> page(
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "knowledgeId", required = false) String knowledgeId,
+            @RequestParam(value = "embedStatus", required = false) String embedStatus
+    ) {
+        PageQuery page = PageQuery.of(pageNo, pageSize);
+        LambdaQueryWrapper<AigcDocs> wrapper = Wrappers.<AigcDocs>lambdaQuery()
+                .eq(StringUtils.hasText(knowledgeId), AigcDocs::getKnowledgeId, knowledgeId)
+                .like(StringUtils.hasText(keyword), AigcDocs::getName, keyword)
+                .eq(StringUtils.hasText(embedStatus), AigcDocs::getEmbedStatus, embedStatus)
+                .orderByDesc(AigcDocs::getCreateTime);
+        Page<AigcDocs> result = aigcDocsService.page(
+                new Page<>(page.getPageNo(), page.getPageSize()),
+                wrapper
+        );
+        return ApiResponse.success(PageResult.of(
+                result.getRecords(),
+                result.getTotal(),
+                page.getPageNo(),
+                page.getPageSize()
+        ));
     }
 
     @GetMapping("/{id}")
@@ -130,13 +173,20 @@ public class AigcDocsController {
     }
 
     @PostMapping
-    public ApiResponse<Boolean> create(@RequestBody AigcDocs docs) {
+    public ApiResponse<Boolean> create(@Valid @RequestBody DocsSaveRequest request) {
+        AigcDocs docs = new AigcDocs();
+        BeanUtils.copyProperties(request, docs);
         log.info("新增文档，name={}", docs.getName());
         return ApiResponse.success(aigcDocsService.save(docs));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcDocs docs) {
+    public ApiResponse<Boolean> update(
+            @PathVariable("id") String id,
+            @Valid @RequestBody DocsSaveRequest request
+    ) {
+        AigcDocs docs = new AigcDocs();
+        BeanUtils.copyProperties(request, docs);
         docs.setId(id);
         log.info("更新文档，id={}", id);
         return ApiResponse.success(aigcDocsService.updateById(docs));

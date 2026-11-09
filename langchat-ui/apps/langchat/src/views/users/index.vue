@@ -90,32 +90,28 @@ function handleReset() {
 async function queryUsers(params: {
   page?: { currentPage: number; pageSize: number };
 }) {
-  const [users, roleList, relations] = await Promise.all([
-    userApi.list(),
+  const pageNo = params.page?.currentPage ?? 1;
+  const pageSize = params.page?.pageSize ?? 10;
+  const keyword = appliedKeyword.value.trim();
+  const status = appliedStatus.value;
+
+  // 角色与用户-角色关系仍走全量 list()，用于表格角色列展示与编辑回填
+  const [usersPage, roleList, relations] = await Promise.all([
+    userApi.page({
+      keyword: keyword || undefined,
+      pageNo,
+      pageSize,
+      status: status ?? undefined,
+    }),
     roleApi.list(),
     userRoleApi.list(),
   ]);
   roles.value = roleList;
   userRoles.value = relations;
 
-  const keyword = appliedKeyword.value.trim().toLowerCase();
-  const status = appliedStatus.value;
-  const filtered = users.filter((item) => {
-    const matchKeyword =
-      !keyword ||
-      [item.username, item.realName, item.phone, item.email]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(keyword));
-    const matchStatus = status === null || item.status === status;
-    return matchKeyword && matchStatus;
-  });
-
-  const currentPage = params.page?.currentPage ?? 1;
-  const pageSize = params.page?.pageSize ?? 10;
-  const start = (currentPage - 1) * pageSize;
   return {
-    items: filtered.slice(start, start + pageSize),
-    total: filtered.length,
+    items: usersPage.records,
+    total: usersPage.total,
   };
 }
 

@@ -7,6 +7,16 @@ spring:
     multipart:
       max-file-size: 500MB
       max-request-size: 520MB
+  # 数据库版本化（Flyway）。已有库通过 baseline-on-migrate 标记 V1 为已应用，
+  # 全新库执行 V1 建表 + 种子数据，后续版本按序执行；可用 LANGCHAT_FLYWAY_ENABLED=false 关闭。
+  flyway:
+    enabled: ${LANGCHAT_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 1
+    baseline-description: "baseline schema from docs/db/langchat.sql"
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    validate-on-migrate: true
 
 mybatis-plus:
   configuration:
@@ -83,3 +93,8 @@ langchat:
       core-pool-size: 1
       max-pool-size: 2
       queue-capacity: 500
+  audit:
+    # 审计日志保留天数（定时任务删除更早的记录）
+    retention-days: ${LANGCHAT_AUDIT_RETENTION_DAYS:90}
+    # 审计日志清理任务 cron（默认每天 03:30）
+    retention-cron: ${LANGCHAT_AUDIT_RETENTION_CRON:0 30 3 * * ?}

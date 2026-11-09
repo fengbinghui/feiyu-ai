@@ -29,9 +29,10 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * 操作审计日志切面。
  *
- * <p>拦截标注 {@link AuditLog} 的 Controller 方法，记录操作人、IP、User-Agent、
- * 请求方法/URL、耗时、参数（敏感字段脱敏）与执行结果，写入 {@code aigc_log}。
- * 审计写入失败只告警，绝不阻断业务请求；业务异常记录后原样抛出。</p>
+ * <p>拦截标注 {@link AuditLog} 的 Controller 方法，在请求线程构造审计日志实体
+ * （操作人、IP、User-Agent、请求方法/URL、耗时、参数（敏感字段脱敏）与执行结果），
+ * 交由 {@link AuditLogWriter} 异步写入 {@code aigc_log}；异步提交失败时回退同步写入并告警。
+ * 审计写入失败绝不阻断业务请求；业务异常记录后原样抛出。</p>
  *
  * @author LangChat Team
  * @since 2026/11/9
@@ -42,8 +43,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class AuditLogAspect {
 
-    /** aigc_log.params 列长度（varchar 255），写入前截断避免超长报错。 */
-    private static final int MAX_PARAMS_LENGTH = 255;
+    /** aigc_log.params 列已扩展为 TEXT，写入前仍限制长度避免异常超大参数。 */
+    private static final int MAX_PARAMS_LENGTH = 4000;
     /** aigc_log.operation 列长度（varchar 20）。 */
     private static final int MAX_OPERATION_LENGTH = 20;
     private static final int MAX_USERNAME_LENGTH = 20;
@@ -57,6 +58,7 @@ public class AuditLogAspect {
     private static final String FAILED_SUFFIX = "（失败）";
 
     private final AigcLogService aigcLogService;
+    private final AuditLogWriter auditLogWriter;
     private final AuthService authService;
     private final ObjectMapper objectMapper;
 
@@ -100,7 +102,17 @@ public class AuditLogAspect {
             entity.setUserAgent(request == null
                     ? null
                     : truncate(request.getHeader("User-Agent"), MAX_USER_AGENT_LENGTH));
-            aigcLogService.save(entity);
+            // 正常路径：异步写入（请求线程不等待 DB）；异步提交失败时回退同步写入并告警，绝不阻断业务。
+            try {
+                auditLogWriter.save(entity);
+            } catch (Exception asyncEx) {
+                log.warn("异步提交审计日志失败，回退同步写入，action={}", auditLog.action(), asyncEx);
+                try {
+                    aigcLogService.save(entity);
+                } catch (Exception syncEx) {
+                    log.warn("同步兜底写入审计日志失败（忽略），action={}", auditLog.action(), syncEx);
+                }
+            }
         } catch (Exception ex) {
             // 审计失败不影响业务
             log.warn("写入操作审计日志失败（忽略），action={}", auditLog.action(), ex);

@@ -82,29 +82,26 @@ function handleReset() {
 async function queryRoles(params: {
   page?: { currentPage: number; pageSize: number };
 }) {
-  const [roles, menuList, relations] = await Promise.all([
-    roleApi.list(),
+  const pageNo = params.page?.currentPage ?? 1;
+  const pageSize = params.page?.pageSize ?? 10;
+  const keyword = appliedKeyword.value.trim();
+
+  // 菜单树与角色-菜单关系仍走全量 listTree()/list()，用于菜单授权列展示与编辑回填
+  const [rolesPage, menuList, relations] = await Promise.all([
+    roleApi.page({
+      keyword: keyword || undefined,
+      pageNo,
+      pageSize,
+    }),
     menuApi.listTree(),
     roleMenuApi.list(),
   ]);
   menuTree.value = menuList;
   roleMenus.value = relations;
 
-  const keyword = appliedKeyword.value.trim().toLowerCase();
-  const filtered = roles.filter(
-    (item) =>
-      !keyword ||
-      [item.name, item.code, item.description]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(keyword)),
-  );
-
-  const currentPage = params.page?.currentPage ?? 1;
-  const pageSize = params.page?.pageSize ?? 10;
-  const start = (currentPage - 1) * pageSize;
   return {
-    items: filtered.slice(start, start + pageSize),
-    total: filtered.length,
+    items: rolesPage.records,
+    total: rolesPage.total,
   };
 }
 

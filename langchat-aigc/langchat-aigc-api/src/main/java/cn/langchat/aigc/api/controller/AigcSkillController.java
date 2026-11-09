@@ -1,6 +1,7 @@
 package cn.langchat.aigc.api.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.langchat.aigc.api.model.request.SkillSaveRequest;
 import cn.langchat.aigc.biz.entity.AigcSkill;
 import cn.langchat.aigc.biz.service.AigcSkillService;
 import cn.langchat.aigc.biz.service.SkillPackageService;
@@ -10,6 +11,12 @@ import cn.langchat.aigc.biz.service.skill.SkillFileNode;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.audit.AuditLog;
 import cn.langchat.common.core.audit.AuditLogType;
+import cn.langchat.common.core.page.PageQuery;
+import cn.langchat.common.core.page.PageResult;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -18,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -67,6 +75,40 @@ public class AigcSkillController {
     }
 
     /**
+     * 分页查询技能列表（服务端分页）。
+     *
+     * @param pageNo 页码，默认 1
+     * @param pageSize 页大小，默认 20、上限 200
+     * @param keyword 关键字（技能标识 / 描述模糊匹配）
+     * @param tags 标签（模糊匹配，前端标签快捷筛选）
+     */
+    @GetMapping("/page")
+    public ApiResponse<PageResult<AigcSkill>> page(
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "tags", required = false) String tags
+    ) {
+        PageQuery page = PageQuery.of(pageNo, pageSize);
+        LambdaQueryWrapper<AigcSkill> wrapper = Wrappers.<AigcSkill>lambdaQuery()
+                .and(StringUtils.hasText(keyword), query -> query
+                        .like(AigcSkill::getName, keyword)
+                        .or().like(AigcSkill::getDescription, keyword))
+                .like(StringUtils.hasText(tags), AigcSkill::getTags, tags)
+                .orderByDesc(AigcSkill::getCreateTime);
+        Page<AigcSkill> result = aigcSkillService.page(
+                new Page<>(page.getPageNo(), page.getPageSize()),
+                wrapper
+        );
+        return ApiResponse.success(PageResult.of(
+                result.getRecords(),
+                result.getTotal(),
+                page.getPageNo(),
+                page.getPageSize()
+        ));
+    }
+
+    /**
      * 技能详情。
      */
     @GetMapping("/{id}")
@@ -76,12 +118,16 @@ public class AigcSkillController {
 
     /**
      * 更新技能元数据（标签、启用状态）。
+     *
+     * <p>前端既有调用为局部更新（如启停开关只提交 enabled），
+     * 因此 {@link SkillSaveRequest} 不设置必填校验，未提交的字段保持数据库原值。</p>
      */
     @PutMapping("/{id}")
-    public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcSkill payload) {
+    public ApiResponse<Boolean> update(@PathVariable("id") String id, @Valid @RequestBody SkillSaveRequest request) {
         AigcSkill skill = requireSkill(id);
-        skill.setTags(payload.getTags());
-        skill.setEnabled(payload.getEnabled() == null || payload.getEnabled());
+        BeanUtils.copyProperties(request, skill);
+        // 保持原有语义：未提交 enabled 时视为启用。
+        skill.setEnabled(request.getEnabled() == null || request.getEnabled());
         return ApiResponse.success(aigcSkillService.updateById(skill));
     }
 

@@ -3,6 +3,8 @@ import type { AigcMcp } from '#/api/aigc/mcp';
 
 import { computed, onMounted, ref, watch } from 'vue';
 
+import { useDebounceFn } from '@vueuse/core';
+
 import { Page } from '@vben/common-ui';
 import { LayoutGrid, Plus, RefreshCcw, Search, Tag } from '@vben/icons';
 import { $t } from '@vben/locales';
@@ -27,6 +29,7 @@ const selectedTag = ref('ALL');
 const currentPage = ref(1);
 const pageSize = ref(9);
 const items = ref<AigcMcp[]>([]);
+const total = ref(0);
 const currentItem = ref<null | Partial<AigcMcp>>(null);
 const tagFilterOptions = computed(() => [
   { label: $t('common.labels.all'), value: 'ALL' },
@@ -36,41 +39,73 @@ const tagFilterOptions = computed(() => [
   })),
 ]);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchKeyword =
-      !query ||
-      [item.name, item.uuid, item.transport, item.siteUrl, item.tags]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    const tags = parseTagList(item.tags);
-    const matchTag =
-      selectedTag.value === 'ALL' || tags.includes(selectedTag.value);
-    return matchKeyword && matchTag;
-  });
-});
+/**
+ * 标签筛选兜底：后端 /page 契约暂未提供 tags 过滤参数，
+ * 这里先把 tags 透传给后端，并在当前页结果上做一次本地细化，避免筛选交互失效。
+ */
+function refineByTag(records: AigcMcp[]) {
+  if (selectedTag.value === 'ALL') {
+    return records;
+  }
+  return records.filter((item) =>
+    parseTagList(item.tags).includes(selectedTag.value),
+  );
+}
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+let loadSeq = 0;
+
+/** 服务端分页加载：pageNo/pageSize/keyword 均由后端处理。 */
+async function loadPage() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  try {
+    const result = await mcpApi.page({
+      keyword: keyword.value.trim() || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      tags: selectedTag.value === 'ALL' ? undefined : selectedTag.value,
+    });
+    if (seq !== loadSeq) {
+      return;
+    }
+    total.value = Number(result?.total ?? 0);
+    items.value = refineByTag(result?.records ?? []);
+    // 删除末页最后一条后回退到最后一个有效页
+    const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+    if (items.value.length === 0 && currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+      void loadPage();
+    }
+  } finally {
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
+  }
+}
+
+const loadPageDebounced = useDebounceFn(() => {
+  void loadPage();
+}, 300);
+
+function reload(resetPage = true) {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  void loadPageDebounced();
+}
+
+watch(keyword, () => reload());
+watch(selectedTag, () => reload());
+watch([currentPage, pageSize], () => {
+  void loadPageDebounced();
 });
 
 const hasActiveFilter = computed(
   () => keyword.value.trim() !== '' || selectedTag.value !== 'ALL',
 );
 
-watch([keyword, selectedTag], () => {
-  currentPage.value = 1;
-});
-
 async function loadList() {
-  loading.value = true;
-  try {
-    items.value = await mcpApi.list();
-  } finally {
-    loading.value = false;
-  }
+  await loadPage();
 }
 
 function handleCreate() {
@@ -188,11 +223,11 @@ onMounted(loadList);
         <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
       </div>
       <div
-        v-else-if="pagedItems.length > 0"
+        v-else-if="items.length > 0"
         class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <McpCard
-          v-for="item in pagedItems"
+          v-for="item in items"
           :key="item.id"
           :item="item"
           @delete="handleDelete"
@@ -224,15 +259,12 @@ onMounted(loadList);
         </LcEmptyState>
       </div>
 
-      <!-- 分页 -->
-      <div
-        v-if="filteredItems.length > pageSize"
-        class="flex items-center justify-end"
-      >
+      <!-- 分页（服务端总数） -->
+      <div v-if="total > pageSize" class="flex items-center justify-end">
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

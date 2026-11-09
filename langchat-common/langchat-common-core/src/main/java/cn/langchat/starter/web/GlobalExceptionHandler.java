@@ -11,11 +11,14 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -53,6 +56,36 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolationException(ConstraintViolationException exception) {
         log.info("约束校验失败，message={}", exception.getMessage());
         return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.BAD_REQUEST.code(), exception.getMessage()));
+    }
+
+    /**
+     * 请求体不是合法 JSON / 类型无法反序列化：返回 400，而不是笼统的 500。
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(HttpMessageNotReadableException exception) {
+        log.info("请求体解析失败，message={}", exception.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure(CommonErrorCode.BAD_REQUEST.code(), "请求体格式错误，请提交合法的 JSON"));
+    }
+
+    /**
+     * 查询参数类型不匹配（例如 pageNo=abc）：返回 400。
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+        log.info("请求参数类型不匹配，name={}, value={}", exception.getName(), exception.getValue());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure(CommonErrorCode.BAD_REQUEST.code(), "请求参数类型错误：" + exception.getName()));
+    }
+
+    /**
+     * 缺少必填查询参数：返回 400。
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException exception) {
+        log.info("缺少必填请求参数，name={}", exception.getParameterName());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure(CommonErrorCode.BAD_REQUEST.code(), "缺少必填参数：" + exception.getParameterName()));
     }
 
     /**

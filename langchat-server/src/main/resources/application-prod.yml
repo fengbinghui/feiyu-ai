@@ -8,6 +8,21 @@ spring:
       username: ${LANGCHAT_MYSQL_USERNAME}
       password: ${LANGCHAT_MYSQL_PASSWORD}
       driver-class-name: com.mysql.cj.jdbc.Driver
+  # 生产环境默认启用 Flyway；已有库首次启动会 baseline 到 V1，再执行后续版本
+  flyway:
+    enabled: ${LANGCHAT_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    validate-on-migrate: true
+
+# 生产默认关闭 Swagger/OpenAPI 文档（如需临时开启通过环境变量置 true）
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
 
 management:
   endpoint:
@@ -15,6 +30,13 @@ management:
       show-details: never
 
 langchat:
+  audit:
+    # 审计日志保留天数与清理 cron（生产建议按合规要求调整）
+    retention-days: ${LANGCHAT_AUDIT_RETENTION_DAYS:90}
+    retention-cron: ${LANGCHAT_AUDIT_RETENTION_CRON:0 30 3 * * ?}
+  web:
+    # 生产必须显式配置真实前端域名（逗号分隔）
+    cors-allowed-origins: ${LANGCHAT_CORS_ALLOWED_ORIGINS}
   skill:
     # 相对路径以 JAR 进程的运行目录为基准，也可配置为持久化绝对路径
     workspace-dir: ${LANGCHAT_SKILL_WORKSPACE_DIR:./langchat-workspace}

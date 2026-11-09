@@ -4,6 +4,8 @@ import type { AigcDatasource } from '#/api/aigc/datasource';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
+import { useDebounceFn } from '@vueuse/core';
+
 import { Page } from '@vben/common-ui';
 import { Database, Plus, RefreshCcw, Search } from '@vben/icons';
 import { $t } from '@vben/locales';
@@ -11,7 +13,7 @@ import { $t } from '@vben/locales';
 import { NButton, NInput, NPagination } from 'naive-ui';
 
 import { dialog, message } from '#/adapter/naive';
-import { deleteDataSource, listDataSources } from '#/api/aigc/datasource';
+import { deleteDataSource, pageDataSource } from '#/api/aigc/datasource';
 import LcCard from '#/components/LcCard/index.vue';
 import LcEmptyState from '#/components/LcEmptyState/index.vue';
 
@@ -26,45 +28,60 @@ const keyword = ref('');
 const currentPage = ref(1);
 const pageSize = ref(6);
 const items = ref<AigcDatasource[]>([]);
+const total = ref(0);
 const currentItem = ref<null | Partial<AigcDatasource>>(null);
 const showEdit = ref(false);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  if (!query) {
-    return items.value;
-  }
-  return items.value.filter((item) =>
-    [
-      item.name,
-      item.dbType,
-      item.host,
-      item.databaseName,
-      item.remark,
-    ]
-      .map((value) => String(value ?? '').toLowerCase())
-      .some((value) => value.includes(query)),
-  );
-});
+let loadSeq = 0;
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+/** 服务端分页加载：pageNo/pageSize/keyword 均由后端处理。 */
+async function loadPage() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  try {
+    const result = await pageDataSource({
+      keyword: keyword.value.trim() || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+    });
+    if (seq !== loadSeq) {
+      return;
+    }
+    total.value = Number(result?.total ?? 0);
+    items.value = result?.records ?? [];
+    // 删除末页最后一条后回退到最后一个有效页
+    const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+    if (items.value.length === 0 && currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+      void loadPage();
+    }
+  } finally {
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
+  }
+}
+
+const loadPageDebounced = useDebounceFn(() => {
+  void loadPage();
+}, 300);
+
+function reload(resetPage = true) {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  void loadPageDebounced();
+}
+
+watch(keyword, () => reload());
+watch([currentPage, pageSize], () => {
+  void loadPageDebounced();
 });
 
 const hasActiveFilter = computed(() => keyword.value.trim() !== '');
 
-watch(keyword, () => {
-  currentPage.value = 1;
-});
-
 async function loadList() {
-  loading.value = true;
-  try {
-    items.value = await listDataSources();
-  } finally {
-    loading.value = false;
-  }
+  await loadPage();
 }
 
 function openDetail(item: AigcDatasource) {
@@ -154,7 +171,7 @@ onMounted(initializePage);
         <div class="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
           <Database class="size-3.5 shrink-0 text-primary" />
           <span class="truncate">
-            {{ $t('common.labels.count', { count: filteredItems.length }) }}
+            {{ $t('common.labels.count', { count: total }) }}
           </span>
         </div>
         <div class="w-full shrink-0 lg:w-72">
@@ -178,11 +195,11 @@ onMounted(initializePage);
         <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
       </div>
       <div
-        v-else-if="pagedItems.length > 0"
+        v-else-if="items.length > 0"
         class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <DatasourceCard
-          v-for="item in pagedItems"
+          v-for="item in items"
           :key="item.id"
           :item="item"
           @delete="handleRemove"
@@ -219,15 +236,12 @@ onMounted(initializePage);
         </LcEmptyState>
       </div>
 
-      <!-- 分页 -->
-      <div
-        v-if="filteredItems.length > pageSize"
-        class="flex items-center justify-end"
-      >
+      <!-- 分页（服务端总数） -->
+      <div v-if="total > pageSize" class="flex items-center justify-end">
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

@@ -4,16 +4,24 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.audit.AuditLog;
 import cn.langchat.common.core.audit.AuditLogType;
+import cn.langchat.common.core.page.PageQuery;
+import cn.langchat.common.core.page.PageResult;
 import cn.langchat.datasource.entity.AigcDatasource;
 import cn.langchat.datasource.model.DatabaseStructure;
+import cn.langchat.datasource.model.DatasourceSaveRequest;
 import cn.langchat.datasource.model.SaveStructureRequest;
 import cn.langchat.datasource.model.TestConnectionRequest;
 import cn.langchat.datasource.service.AigcDatasourceService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -49,6 +58,39 @@ public class AigcDatasourceController {
         return ApiResponse.success(datasources);
     }
 
+    /**
+     * 分页查询数据源列表（服务端分页）。
+     *
+     * @param pageNo 页码，默认 1
+     * @param pageSize 页大小，默认 20、上限 200
+     * @param keyword 关键字（数据源名称 / 备注模糊匹配；实体无 description 列，备注为最接近字段）
+     */
+    @GetMapping("/page")
+    public ApiResponse<PageResult<AigcDatasource>> page(
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword
+    ) {
+        PageQuery page = PageQuery.of(pageNo, pageSize);
+        LambdaQueryWrapper<AigcDatasource> wrapper = Wrappers.<AigcDatasource>lambdaQuery()
+                .and(StringUtils.hasText(keyword), query -> query
+                        .like(AigcDatasource::getName, keyword)
+                        .or().like(AigcDatasource::getRemark, keyword))
+                .orderByDesc(AigcDatasource::getCreateTime);
+        Page<AigcDatasource> result = aigcDatasourceService.page(
+                new Page<>(page.getPageNo(), page.getPageSize()),
+                wrapper
+        );
+        // 敏感字段脱敏：分页结果同样不返回完整数据库密码。
+        result.getRecords().forEach(datasource -> datasource.setPassword(maskSecret(datasource.getPassword())));
+        return ApiResponse.success(PageResult.of(
+                result.getRecords(),
+                result.getTotal(),
+                page.getPageNo(),
+                page.getPageSize()
+        ));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<AigcDatasource> detail(@PathVariable("id") String id) {
         AigcDatasource datasource = aigcDatasourceService.getById(id);
@@ -60,13 +102,20 @@ public class AigcDatasourceController {
 
     @PostMapping
     @AuditLog(type = AuditLogType.DATASOURCE, action = "新增数据源")
-    public ApiResponse<Boolean> create(@RequestBody AigcDatasource datasource) {
+    public ApiResponse<Boolean> create(@Valid @RequestBody DatasourceSaveRequest request) {
+        AigcDatasource datasource = new AigcDatasource();
+        BeanUtils.copyProperties(request, datasource);
         return ApiResponse.success(aigcDatasourceService.save(datasource));
     }
 
     @PutMapping("/{id}")
     @AuditLog(type = AuditLogType.DATASOURCE, action = "更新数据源")
-    public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcDatasource datasource) {
+    public ApiResponse<Boolean> update(
+            @PathVariable("id") String id,
+            @Valid @RequestBody DatasourceSaveRequest request
+    ) {
+        AigcDatasource datasource = new AigcDatasource();
+        BeanUtils.copyProperties(request, datasource);
         datasource.setId(id);
         // 前端回显的是脱敏后的密码（含 *）或未传，此时保留数据库中的原始密码。
         if (isMaskedOrBlank(datasource.getPassword())) {

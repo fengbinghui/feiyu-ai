@@ -1,6 +1,7 @@
 package cn.langchat.aigc.api.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.langchat.aigc.api.model.request.VectorStoreSaveRequest;
 import cn.langchat.aigc.biz.entity.AigcVectorStore;
 import cn.langchat.aigc.biz.service.AigcVectorStoreService;
 import cn.langchat.aigc.biz.support.VectorStoreSupport;
@@ -8,10 +9,17 @@ import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
 import cn.langchat.common.core.audit.AuditLog;
 import cn.langchat.common.core.audit.AuditLogType;
+import cn.langchat.common.core.page.PageQuery;
+import cn.langchat.common.core.page.PageResult;
 import cn.langchat.common.exception.BizException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -46,6 +55,40 @@ public class AigcVectorStoreController {
         return ApiResponse.success(vectorStores);
     }
 
+    /**
+     * 分页查询向量库列表（服务端分页）。
+     *
+     * @param pageNo 页码，默认 1
+     * @param pageSize 页大小，默认 20、上限 200
+     * @param keyword 关键字（向量库名称模糊匹配）
+     * @param provider 供应商（精确匹配，前端供应商筛选）
+     */
+    @GetMapping("/page")
+    public ApiResponse<PageResult<AigcVectorStore>> page(
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "provider", required = false) String provider
+    ) {
+        PageQuery page = PageQuery.of(pageNo, pageSize);
+        LambdaQueryWrapper<AigcVectorStore> wrapper = Wrappers.<AigcVectorStore>lambdaQuery()
+                .like(StringUtils.hasText(keyword), AigcVectorStore::getName, keyword)
+                .eq(StringUtils.hasText(provider), AigcVectorStore::getProvider, provider)
+                .orderByDesc(AigcVectorStore::getCreateTime);
+        Page<AigcVectorStore> result = aigcVectorStoreService.page(
+                new Page<>(page.getPageNo(), page.getPageSize()),
+                wrapper
+        );
+        // 敏感字段脱敏：分页结果同样不返回完整密码。
+        result.getRecords().forEach(store -> store.setPassword(maskSecret(store.getPassword())));
+        return ApiResponse.success(PageResult.of(
+                result.getRecords(),
+                result.getTotal(),
+                page.getPageNo(),
+                page.getPageSize()
+        ));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<AigcVectorStore> detail(@PathVariable("id") String id) {
         AigcVectorStore vectorStore = aigcVectorStoreService.getById(id);
@@ -57,7 +100,9 @@ public class AigcVectorStoreController {
 
     @PostMapping
     @AuditLog(type = AuditLogType.VECTOR_STORE, action = "新增向量库")
-    public ApiResponse<Boolean> create(@RequestBody AigcVectorStore vectorStore) {
+    public ApiResponse<Boolean> create(@Valid @RequestBody VectorStoreSaveRequest request) {
+        AigcVectorStore vectorStore = new AigcVectorStore();
+        BeanUtils.copyProperties(request, vectorStore);
         log.info("新增向量库，name={}, provider={}", vectorStore.getName(), vectorStore.getProvider());
         validateVectorStore(vectorStore);
         return ApiResponse.success(aigcVectorStoreService.save(vectorStore));
@@ -65,7 +110,12 @@ public class AigcVectorStoreController {
 
     @PutMapping("/{id}")
     @AuditLog(type = AuditLogType.VECTOR_STORE, action = "更新向量库")
-    public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcVectorStore vectorStore) {
+    public ApiResponse<Boolean> update(
+            @PathVariable("id") String id,
+            @Valid @RequestBody VectorStoreSaveRequest request
+    ) {
+        AigcVectorStore vectorStore = new AigcVectorStore();
+        BeanUtils.copyProperties(request, vectorStore);
         vectorStore.setId(id);
         log.info("更新向量库，id={}", id);
         // 前端回显的是脱敏后的密码（含 *）或未传，此时保留数据库中的原始密码。

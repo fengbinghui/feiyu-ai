@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type {AigcKnowledge} from '#/api/aigc/knowledge';
 
-import {computed, onMounted, ref, watch} from 'vue';
+import {onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 
 import {Page} from '@vben/common-ui';
@@ -16,8 +16,6 @@ import {knowledgeApi} from '#/api/aigc/knowledge';
 import LcListCard from '#/components/LcListCard/index.vue';
 import {buildKnowledgeDocsRouteLocation} from '#/views/docs/shared';
 import {useAigcLookups} from '#/views/shared/aigc/lookups';
-import {aigcCommonTagOptions} from '#/views/shared/aigc/options';
-import {parseTagList} from '#/views/shared/aigc/tags';
 
 import KnowledgeCard from './card.vue';
 import KnowledgeEdit from './edit.vue';
@@ -32,58 +30,69 @@ const loading = ref(false);
 const saving = ref(false);
 const showEdit = ref(false);
 const keyword = ref('');
-const selectedTag = ref('ALL');
+const appliedKeyword = ref('');
 const currentPage = ref(1);
 const pageSize = ref(6);
+const total = ref(0);
 const items = ref<AigcKnowledge[]>([]);
 const currentItem = ref<null | Partial<AigcKnowledge>>(null);
-const tagFilterOptions = computed(() => [
-  { label: $t('common.labels.all'), value: 'ALL' },
-  ...aigcCommonTagOptions().map((item) => ({
-    label: item.label,
-    value: String(item.value),
-  })),
-]);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchKeyword =
-      !query ||
-      [item.name, item.description, item.tags]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    const tags = parseTagList(item.tags);
-    const matchTag =
-      selectedTag.value === 'ALL' || tags.includes(selectedTag.value);
-    return matchKeyword && matchTag;
-  });
+// 搜索输入 → 已生效关键字（防抖后按服务端分页重新查询）
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(keyword, (value) => {
+  if (searchTimer !== undefined) {
+    clearTimeout(searchTimer);
+  }
+  searchTimer = setTimeout(() => {
+    appliedKeyword.value = value.trim();
+    if (currentPage.value === 1) {
+      void loadPage();
+    } else {
+      // 重置到第一页并交由分页 watch 触发查询，避免重复请求
+      currentPage.value = 1;
+    }
+  }, 300);
 });
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+watch([currentPage, pageSize], () => {
+  void loadPage();
 });
 
-watch([keyword, selectedTag], () => {
-  currentPage.value = 1;
+onBeforeUnmount(() => {
+  if (searchTimer !== undefined) {
+    clearTimeout(searchTimer);
+  }
 });
 
 function jumpToKnowledge(knowledgeId?: string) {
   void router.push(buildKnowledgeDocsRouteLocation(knowledgeId));
 }
 
-async function loadList() {
+async function loadPage() {
   loading.value = true;
   try {
-    items.value = await knowledgeApi.list();
+    const result = await knowledgeApi.page({
+      keyword: appliedKeyword.value || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+    });
+    items.value = result.records;
+    total.value = result.total;
   } finally {
     loading.value = false;
   }
 }
 
+/** 删除/保存后刷新当前页；若当前页已空则回退一页（由分页 watch 触发重新查询） */
+async function reloadCurrentPage() {
+  await loadPage();
+  if (items.value.length === 0 && currentPage.value > 1) {
+    currentPage.value -= 1;
+  }
+}
+
 async function initializePage() {
-  await Promise.all([loadLookups(), loadList()]);
+  await Promise.all([loadLookups(), loadPage()]);
 }
 
 function handleCreate() {
@@ -111,7 +120,7 @@ async function handleDelete(item: AigcKnowledge) {
     onPositiveClick: async () => {
       await knowledgeApi.remove(item.id!);
       message.success($t('knowledge.messages.deleted'));
-      await loadList();
+      await reloadCurrentPage();
     },
   });
 }
@@ -127,7 +136,7 @@ async function handleSave(payload: Partial<AigcKnowledge>) {
       message.success($t('knowledge.messages.created'));
     }
     showEdit.value = false;
-    await loadList();
+    await reloadCurrentPage();
   } finally {
     saving.value = false;
   }
@@ -170,7 +179,7 @@ onMounted(initializePage);
                 <span
                   class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
                 >
-                  {{ $t('common.labels.count', { count: filteredItems.length }) }}
+                  {{ $t('common.labels.count', { count: total }) }}
                 </span>
               </div>
               <p class="mt-1 text-sm leading-6 text-muted-foreground">
@@ -201,13 +210,10 @@ onMounted(initializePage);
       </section>
 
       <LcListCard
-        :active-tag="selectedTag"
-        :items="pagedItems"
+        :items="items"
         :loading="loading"
         :search-value="keyword"
-        :tags="tagFilterOptions"
         :search-placeholder="$t('knowledge.list.searchPlaceholder')"
-        @update:active-tag="selectedTag = $event"
         @update:search-value="keyword = $event"
       >
         <template #item="{ item }">
@@ -227,13 +233,13 @@ onMounted(initializePage);
       </LcListCard>
 
       <div
-        v-if="filteredItems.length > pageSize"
+        v-if="total > pageSize"
         class="flex justify-end rounded-xl border border-border bg-card px-4 py-2.5"
       >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.auth.config.AuthProperties;
 import cn.langchat.auth.entity.AigcUser;
 import cn.langchat.auth.entity.AigcUserRole;
+import cn.langchat.auth.model.request.AigcUserSaveRequest;
 import cn.langchat.auth.model.request.ResetPasswordRequest;
 import cn.langchat.auth.service.AigcUserRoleService;
 import cn.langchat.auth.service.AigcUserService;
@@ -12,11 +13,17 @@ import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
 import cn.langchat.common.core.audit.AuditLog;
 import cn.langchat.common.core.audit.AuditLogType;
+import cn.langchat.common.core.page.PageQuery;
+import cn.langchat.common.core.page.PageResult;
 import cn.langchat.common.exception.BizException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -55,6 +63,38 @@ public class AigcUserController {
         return ApiResponse.success(users);
     }
 
+    /**
+     * 分页查询用户。
+     *
+     * @param pageNo 页码，默认 1
+     * @param pageSize 页大小，默认 20、上限 200
+     * @param keyword 关键字（用户名 / 真实姓名 / 手机号 / 邮箱模糊匹配）
+     * @param status 状态过滤（0 锁定 1 有效）
+     */
+    @GetMapping("/page")
+    public ApiResponse<PageResult<AigcUser>> page(
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) Integer status
+    ) {
+        PageQuery pageQuery = PageQuery.of(pageNo, pageSize);
+        LambdaQueryWrapper<AigcUser> wrapper = Wrappers.<AigcUser>lambdaQuery()
+                .eq(status != null, AigcUser::getStatus, status)
+                .and(StringUtils.hasText(keyword), query -> query
+                        .like(AigcUser::getUsername, keyword)
+                        .or().like(AigcUser::getRealName, keyword)
+                        .or().like(AigcUser::getPhone, keyword)
+                        .or().like(AigcUser::getEmail, keyword))
+                .orderByDesc(AigcUser::getCreateTime);
+        Page<AigcUser> page = aigcUserService.page(
+                new Page<>(pageQuery.getPageNo(), pageQuery.getPageSize()), wrapper);
+        // 敏感字段脱敏：分页结果同样不返回密码（含 BCrypt 哈希）。
+        page.getRecords().forEach(this::erasePassword);
+        return ApiResponse.success(PageResult.of(
+                page.getRecords(), page.getTotal(), pageQuery.getPageNo(), pageQuery.getPageSize()));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<AigcUser> detail(@PathVariable("id") String id) {
         AigcUser user = aigcUserService.getById(id);
@@ -64,17 +104,24 @@ public class AigcUserController {
 
     @PostMapping
     @AuditLog(type = AuditLogType.USER, action = "新增用户")
-    public ApiResponse<Boolean> create(@RequestBody AigcUser user) {
-        log.info("新增用户，username={}", user.getUsername());
+    public ApiResponse<Boolean> create(@Valid @RequestBody AigcUserSaveRequest request) {
+        log.info("新增用户，username={}", request.getUsername());
+        AigcUser user = new AigcUser();
+        BeanUtils.copyProperties(request, user);
         normalizePassword(user);
         return ApiResponse.success(aigcUserService.save(user));
     }
 
     @PutMapping("/{id}")
     @AuditLog(type = AuditLogType.USER, action = "更新用户")
-    public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcUser user) {
-        user.setId(id);
+    public ApiResponse<Boolean> update(
+            @PathVariable("id") String id,
+            @Valid @RequestBody AigcUserSaveRequest request
+    ) {
         log.info("更新用户，id={}", id);
+        AigcUser user = new AigcUser();
+        BeanUtils.copyProperties(request, user);
+        user.setId(id);
         // 密码为空/未传时保留原密码；非空密码统一 BCrypt 入库。
         normalizePassword(user);
         return ApiResponse.success(aigcUserService.updateById(user));

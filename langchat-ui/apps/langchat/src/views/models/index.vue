@@ -3,6 +3,8 @@ import type {AigcModel} from '#/api/aigc/model';
 
 import {computed, onMounted, ref, watch} from 'vue';
 
+import {useDebounceFn} from '@vueuse/core';
+
 import {Page} from '@vben/common-ui';
 import {
   Bot,
@@ -50,6 +52,7 @@ const selectedType = ref('');
 const currentPage = ref(1);
 const pageSize = ref(9);
 const items = ref<AigcModel[]>([]);
+const total = ref(0);
 const currentItem = ref<null | Partial<AigcModel>>(null);
 
 const providerOptions = getModelProviderOptions();
@@ -68,6 +71,10 @@ const typeOptions = computed(() => {
   }));
 });
 
+/**
+ * 供应商筛选项：后端 /page 契约只提供 keyword/type，provider 参数先透传，
+ * 计数与筛选在当前页兜底（后端暂无聚合接口）。
+ */
 const providerFilterOptions = computed(() =>
   [
     {
@@ -121,26 +128,53 @@ const normalizedSelectedType = computed(() =>
   selectedType.value ? normalizeModelType(selectedType.value) : '',
 );
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchProvider =
-      !selectedProvider.value || item.provider === selectedProvider.value;
-    const matchType =
-      !normalizedSelectedType.value ||
-      normalizeModelType(item.type) === normalizedSelectedType.value;
-    const matchKeyword =
-      !query ||
-      [item.name, item.model, item.provider, item.type]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    return matchProvider && matchType && matchKeyword;
-  });
-});
+let loadSeq = 0;
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+/** 服务端分页加载：pageNo/pageSize/keyword/type/provider 均由后端处理。 */
+async function loadPage() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  try {
+    const result = await modelApi.page({
+      keyword: keyword.value.trim() || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      provider: selectedProvider.value || undefined,
+      type: normalizedSelectedType.value || undefined,
+    });
+    if (seq !== loadSeq) {
+      return;
+    }
+    total.value = Number(result?.total ?? 0);
+    items.value = result?.records ?? [];
+    // 删除末页最后一条后回退到最后一个有效页
+    const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+    if (items.value.length === 0 && currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+      void loadPage();
+    }
+  } finally {
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
+  }
+}
+
+const loadPageDebounced = useDebounceFn(() => {
+  void loadPage();
+}, 300);
+
+function reload(resetPage = true) {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  void loadPageDebounced();
+}
+
+watch(keyword, () => reload());
+watch([selectedProvider, selectedType], () => reload());
+watch([currentPage, pageSize], () => {
+  void loadPageDebounced();
 });
 
 const pageDescription = computed(() => {
@@ -204,10 +238,6 @@ const recommendedModels = computed(() => {
   );
 });
 
-watch([keyword, selectedProvider, selectedType], () => {
-  currentPage.value = 1;
-});
-
 // 切换供应商后，若已选类型不在该供应商能力范围内则重置
 watch(selectedProvider, () => {
   const available = typeOptions.value.map((option) => String(option.value));
@@ -217,12 +247,7 @@ watch(selectedProvider, () => {
 });
 
 async function loadList() {
-  loading.value = true;
-  try {
-    items.value = await modelApi.list();
-  } finally {
-    loading.value = false;
-  }
+  await loadPage();
 }
 
 function handleCreate() {
@@ -283,7 +308,6 @@ function resetFilters() {
 
 function handleTypeFilter(type: string) {
   selectedType.value = type ? normalizeModelType(type) : '';
-  currentPage.value = 1;
 }
 
 onMounted(loadList);
@@ -385,7 +409,7 @@ onMounted(loadList);
             {{ activeTypeMeta.label }}
           </span>
           <span class="ml-auto">
-            {{ $t('models.list.total', { count: filteredItems.length }) }}
+            {{ $t('models.list.total', { count: total }) }}
           </span>
         </div>
       </div>
@@ -455,7 +479,10 @@ onMounted(loadList);
               <div
                 class="mb-1 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"
               >
-                <component :is="activeProviderMeta.icon" class="size-3.5" />
+                <template v-if="typeof activeProviderMeta.icon === 'string'">
+                  <img :src="activeProviderMeta.icon" class="size-3.5" alt="" />
+                </template>
+                <component :is="activeProviderMeta.icon" v-else class="size-3.5" />
                 {{ $t('models.list.recommended') }}
               </div>
               <div class="flex flex-wrap gap-1">
@@ -498,11 +525,11 @@ onMounted(loadList);
             <div class="min-h-0 flex-1 overflow-y-auto p-3">
               <NSpin :show="loading" class="block w-full">
                 <div
-                  v-if="pagedItems.length > 0"
+                  v-if="items.length > 0"
                   class="grid gap-3 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                 >
                   <ModelCard
-                    v-for="item in pagedItems"
+                    v-for="item in items"
                     :key="item.id || item.model"
                     :item="item"
                     @delete="handleDelete"
@@ -526,13 +553,13 @@ onMounted(loadList);
             </div>
 
             <div
-              v-if="filteredItems.length > pageSize"
+              v-if="total > pageSize"
               class="flex shrink-0 justify-end border-t border-border/60 px-3 py-2"
             >
               <NPagination
                 v-model:page="currentPage"
                 v-model:page-size="pageSize"
-                :item-count="filteredItems.length"
+                :item-count="total"
                 :page-sizes="[6, 9, 12, 18]"
                 show-size-picker
               />

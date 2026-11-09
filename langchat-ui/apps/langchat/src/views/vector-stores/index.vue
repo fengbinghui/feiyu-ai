@@ -3,6 +3,8 @@ import type { AigcVectorStore } from '#/api/aigc/vector-store';
 
 import { computed, onMounted, ref, watch } from 'vue';
 
+import { useDebounceFn } from '@vueuse/core';
+
 import { Page } from '@vben/common-ui';
 import { LayoutGrid, Plus, RefreshCcw, Search, Tag } from '@vben/icons';
 import { $t } from '@vben/locales';
@@ -26,6 +28,7 @@ const selectedProvider = ref('ALL');
 const currentPage = ref(1);
 const pageSize = ref(9);
 const items = ref<AigcVectorStore[]>([]);
+const total = ref(0);
 const currentItem = ref<null | Partial<AigcVectorStore>>(null);
 const providerTagOptions = computed(() => [
   { label: $t('common.labels.all'), value: 'ALL' },
@@ -35,50 +38,74 @@ const providerTagOptions = computed(() => [
   })),
 ]);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchKeyword =
-      !query ||
-      [item.name, item.provider, item.host, item.databaseName, item.tableName]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    const matchProvider =
-      selectedProvider.value === 'ALL' ||
-      item.provider === selectedProvider.value;
-    return matchKeyword && matchProvider;
-  });
+let loadSeq = 0;
+
+/** 服务端分页加载：pageNo/pageSize/keyword/provider 均由后端处理。 */
+async function loadPage() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  try {
+    const result = await vectorStoreApi.page({
+      keyword: keyword.value.trim() || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      provider:
+        selectedProvider.value === 'ALL' ? undefined : selectedProvider.value,
+    });
+    if (seq !== loadSeq) {
+      return;
+    }
+    total.value = Number(result?.total ?? 0);
+    items.value = result?.records ?? [];
+    // 删除末页最后一条后回退到最后一个有效页
+    const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+    if (items.value.length === 0 && currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+      void loadPage();
+    }
+  } finally {
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
+  }
+}
+
+const loadPageDebounced = useDebounceFn(() => {
+  void loadPage();
+}, 300);
+
+function reload(resetPage = true) {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  void loadPageDebounced();
+}
+
+watch(keyword, () => reload());
+watch(selectedProvider, () => reload());
+watch([currentPage, pageSize], () => {
+  void loadPageDebounced();
 });
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+/** 页头汇总：总数取服务端 total；供应商/已配置数按当前页统计（后端无聚合接口）。 */
+const summaryText = computed(() => {
+  const providers = new Set(
+    items.value.map((item) => item.provider).filter(Boolean),
+  ).size;
+  const ready = items.value.filter((item) => Boolean(item.tableName)).length;
+  return $t('vectorStores.list.summary', {
+    providers,
+    ready,
+    total: total.value,
+  });
 });
 
 const hasActiveFilter = computed(
   () => keyword.value.trim() !== '' || selectedProvider.value !== 'ALL',
 );
 
-watch([keyword, selectedProvider], () => {
-  currentPage.value = 1;
-});
-
-const summaryText = computed(() => {
-  const total = items.value.length;
-  const providers = new Set(
-    items.value.map((item) => item.provider).filter(Boolean),
-  ).size;
-  const ready = items.value.filter((item) => Boolean(item.tableName)).length;
-  return $t('vectorStores.list.summary', { providers, ready, total });
-});
-
 async function loadList() {
-  loading.value = true;
-  try {
-    items.value = await vectorStoreApi.list();
-  } finally {
-    loading.value = false;
-  }
+  await loadPage();
 }
 
 function handleCreate() {
@@ -197,11 +224,11 @@ onMounted(loadList);
         <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
       </div>
       <div
-        v-else-if="pagedItems.length > 0"
+        v-else-if="items.length > 0"
         class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <VectorStoreCard
-          v-for="item in pagedItems"
+          v-for="item in items"
           :key="item.id"
           :item="item"
           @delete="handleDelete"
@@ -237,15 +264,12 @@ onMounted(loadList);
         </LcEmptyState>
       </div>
 
-      <!-- 分页 -->
-      <div
-        v-if="filteredItems.length > pageSize"
-        class="flex items-center justify-end"
-      >
+      <!-- 分页（服务端总数） -->
+      <div v-if="total > pageSize" class="flex items-center justify-end">
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

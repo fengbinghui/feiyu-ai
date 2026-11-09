@@ -186,16 +186,6 @@ const failedDocsSummary = computed(() => {
   });
 });
 
-function matchKeyword(item: AigcDocs) {
-  const query = keyword.value.trim().toLowerCase();
-  if (!query) {
-    return true;
-  }
-  return [item.name, item.ext, item.url, item.content]
-    .map((value) => String(value ?? '').toLowerCase())
-    .some((value) => value.includes(query));
-}
-
 function resolveDocsSegmentConfig(row: AigcDocs) {
   return parseDocsIngestionConfig(row.ingestionConfig);
 }
@@ -218,22 +208,20 @@ async function queryDocs(params: {
     };
   }
 
-  const docs = await docsApi.list({
-    knowledgeId: knowledgeId.value,
-  });
-  const filtered = docs.filter((item) => {
-    const matchStatus =
-      !selectedDocStatus.value || item.embedStatus === selectedDocStatus.value;
-    return matchStatus && matchKeyword(item);
-  });
-
-  const currentPage = params.page?.currentPage ?? 1;
+  const pageNo = params.page?.currentPage ?? 1;
   const pageSize = params.page?.pageSize ?? 20;
-  const start = (currentPage - 1) * pageSize;
+  const result = await docsApi.page({
+    // 状态筛选暂按契约透传，后端 /page 支持后即生效
+    embedStatus: selectedDocStatus.value || undefined,
+    keyword: keyword.value.trim() || undefined,
+    knowledgeId: knowledgeId.value,
+    pageNo,
+    pageSize,
+  });
 
   return {
-    items: filtered.slice(start, start + pageSize),
-    total: filtered.length,
+    items: result.records,
+    total: result.total,
   };
 }
 

@@ -5,6 +5,8 @@ import type { AigcSkill } from '#/api/aigc/skill';
 
 import { computed, onMounted, ref, watch } from 'vue';
 
+import { useDebounceFn } from '@vueuse/core';
+
 import { Page, useVbenModal } from '@vben/common-ui';
 import {
   FolderUp,
@@ -33,7 +35,7 @@ import { skillApi } from '#/api/aigc/skill';
 import LcCard from '#/components/LcCard/index.vue';
 import LcEmptyState from '#/components/LcEmptyState/index.vue';
 import { aigcCommonTagOptions } from '#/views/shared/aigc/options';
-import { parseTagList, stringifyTagList } from '#/views/shared/aigc/tags';
+import { stringifyTagList } from '#/views/shared/aigc/tags';
 
 import SkillCard from './card.vue';
 import SkillEdit from './edit.vue';
@@ -49,6 +51,7 @@ const selectedTag = ref('ALL');
 const currentPage = ref(1);
 const pageSize = ref(9);
 const items = ref<AigcSkill[]>([]);
+const total = ref(0);
 const currentSkill = ref<null | Partial<AigcSkill>>(null);
 
 const tagOptions = computed(() =>
@@ -63,24 +66,52 @@ const tagFilterOptions = computed(() => [
   ...tagOptions.value,
 ]);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchKeyword =
-      !query ||
-      [item.description, item.name, item.title, item.tags]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    const tags = parseTagList(item.tags);
-    const matchTag =
-      selectedTag.value === 'ALL' || tags.includes(selectedTag.value);
-    return matchKeyword && matchTag;
-  });
-});
+let loadSeq = 0;
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+/** 服务端分页加载：pageNo/pageSize/keyword/tags 均由后端处理。 */
+async function loadPage() {
+  const seq = ++loadSeq;
+  loading.value = true;
+  try {
+    const result = await skillApi.page({
+      keyword: keyword.value.trim() || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      tags: selectedTag.value === 'ALL' ? undefined : selectedTag.value,
+    });
+    if (seq !== loadSeq) {
+      return;
+    }
+    total.value = Number(result?.total ?? 0);
+    items.value = result?.records ?? [];
+    // 删除末页最后一条后回退到最后一个有效页
+    const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+    if (items.value.length === 0 && currentPage.value > maxPage) {
+      currentPage.value = maxPage;
+      void loadPage();
+    }
+  } finally {
+    if (seq === loadSeq) {
+      loading.value = false;
+    }
+  }
+}
+
+const loadPageDebounced = useDebounceFn(() => {
+  void loadPage();
+}, 300);
+
+function reload(resetPage = true) {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  void loadPageDebounced();
+}
+
+watch(keyword, () => reload());
+watch(selectedTag, () => reload());
+watch([currentPage, pageSize], () => {
+  void loadPageDebounced();
 });
 
 const uploadReady = computed(() =>
@@ -92,10 +123,6 @@ const uploadReady = computed(() =>
 const hasActiveFilter = computed(
   () => keyword.value.trim() !== '' || selectedTag.value !== 'ALL',
 );
-
-watch([keyword, selectedTag], () => {
-  currentPage.value = 1;
-});
 
 const [UploadModal, uploadModalApi] = useVbenModal({
   class: 'w-[640px]',
@@ -120,12 +147,7 @@ watch(
 );
 
 async function loadList() {
-  loading.value = true;
-  try {
-    items.value = await skillApi.list();
-  } finally {
-    loading.value = false;
-  }
+  await loadPage();
 }
 
 function openUpload() {
@@ -324,11 +346,11 @@ onMounted(loadList);
         <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
       </div>
       <div
-        v-else-if="pagedItems.length > 0"
+        v-else-if="items.length > 0"
         class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <SkillCard
-          v-for="item in pagedItems"
+          v-for="item in items"
           :key="item.id"
           :item="item"
           @delete="handleDelete"
@@ -361,15 +383,12 @@ onMounted(loadList);
         </LcEmptyState>
       </div>
 
-      <!-- 分页 -->
-      <div
-        v-if="filteredItems.length > pageSize"
-        class="flex items-center justify-end"
-      >
+      <!-- 分页（服务端总数） -->
+      <div v-if="total > pageSize" class="flex items-center justify-end">
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

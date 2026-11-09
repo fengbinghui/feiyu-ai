@@ -1,4 +1,4 @@
-import type { BaseEntity } from './_shared';
+import type { BaseEntity, PageParams, PageResult } from './_shared';
 
 import { requestClient } from '#/api/request';
 
@@ -63,6 +63,16 @@ const basePath = '/v1/datasources';
 
 export function listDataSources() {
   return requestClient.get<AigcDatasource[]>(basePath);
+}
+
+/**
+ * 数据源服务端分页列表：GET /v1/datasources/page。
+ * 下拉/关联数据仍使用 listDataSources()。
+ */
+export function pageDataSource(params?: PageParams) {
+  return requestClient.get<PageResult<AigcDatasource>>(`${basePath}/page`, {
+    params,
+  });
 }
 
 export function getDataSource(id: string) {

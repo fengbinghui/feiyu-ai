@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type {AigcAgent} from '#/api/aigc/agent';
 
-import {computed, markRaw, onMounted, reactive, ref, watch} from 'vue';
+import {computed, markRaw, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 
 import {Page} from '@vben/common-ui';
@@ -21,7 +21,7 @@ import ModelSelector from '#/components/ModelSelector/index.vue';
 import PageHeader from '#/components/PageHeader/index.vue';
 import {useAigcLookups} from '#/views/shared/aigc/lookups';
 import {aigcCommonTagOptions} from '#/views/shared/aigc/options';
-import {parseTagList, stringifyTagList} from '#/views/shared/aigc/tags';
+import {stringifyTagList} from '#/views/shared/aigc/tags';
 
 import AgentCard from './card.vue';
 import AgentEdit from './edit.vue';
@@ -39,44 +39,59 @@ const saving = ref(false);
 const creating = ref(false);
 const showEdit = ref(false);
 const keyword = ref('');
-const selectedTag = ref('ALL');
+const appliedKeyword = ref('');
+const statusFilter = ref('ALL');
 const currentPage = ref(1);
 const pageSize = ref(6);
+const total = ref(0);
 const items = ref<AigcAgent[]>([]);
 const currentItem = ref<null | Partial<AigcAgent>>(null);
 const LcIconEditor = markRaw(LcIcon);
 const ModelSelectorEditor = markRaw(ModelSelector);
 const currentBaseConfigAgent = ref<AigcAgent | null>(null);
-const tagFilterOptions = computed(() => [
+
+/** 状态快捷筛选（服务端 /page 支持 status），替代原先依赖全量数据的标签筛选 */
+const statusFilterOptions = computed(() => [
   { label: $t('common.labels.all'), value: 'ALL' },
-  ...aigcCommonTagOptions().map((item) => ({
-    label: item.label,
-    value: String(item.value),
-  })),
+  { label: $t('agents.status.draft'), value: 'DRAFT' },
+  { label: $t('agents.status.published'), value: 'PUBLISHED' },
+  { label: $t('agents.status.disabled'), value: 'DISABLED' },
 ]);
 
-const filteredItems = computed(() => {
-  const query = keyword.value.trim().toLowerCase();
-  return items.value.filter((item) => {
-    const matchKeyword =
-      !query ||
-      [item.agentName, item.status, item.description, item.tags]
-        .map((value) => String(value ?? '').toLowerCase())
-        .some((value) => value.includes(query));
-    const tags = parseTagList(item.tags);
-    const matchTag =
-      selectedTag.value === 'ALL' || tags.includes(selectedTag.value);
-    return matchKeyword && matchTag;
-  });
+function handleStatusFilterChange(value: string) {
+  statusFilter.value = value;
+  if (currentPage.value === 1) {
+    void loadPage();
+  } else {
+    currentPage.value = 1;
+  }
+}
+
+// 搜索输入 → 已生效关键字（防抖后按服务端分页重新查询）
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(keyword, (value) => {
+  if (searchTimer !== undefined) {
+    clearTimeout(searchTimer);
+  }
+  searchTimer = setTimeout(() => {
+    appliedKeyword.value = value.trim();
+    if (currentPage.value === 1) {
+      void loadPage();
+    } else {
+      // 重置到第一页并交由分页 watch 触发查询，避免重复请求
+      currentPage.value = 1;
+    }
+  }, 300);
 });
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredItems.value.slice(start, start + pageSize.value);
+watch([currentPage, pageSize], () => {
+  void loadPage();
 });
 
-watch([keyword, selectedTag], () => {
-  currentPage.value = 1;
+onBeforeUnmount(() => {
+  if (searchTimer !== undefined) {
+    clearTimeout(searchTimer);
+  }
 });
 const [BaseConfigModal, baseConfigModalApi] = useVbenModal({
   onCancel() {
@@ -226,12 +241,27 @@ watch(
   { immediate: true },
 );
 
-async function loadList() {
+async function loadPage() {
   loading.value = true;
   try {
-    items.value = await agentApi.list();
+    const result = await agentApi.page({
+      keyword: appliedKeyword.value || undefined,
+      pageNo: currentPage.value,
+      pageSize: pageSize.value,
+      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
+    });
+    items.value = result.records;
+    total.value = result.total;
   } finally {
     loading.value = false;
+  }
+}
+
+/** 删除/保存后刷新当前页；若当前页已空则回退一页（由分页 watch 触发重新查询） */
+async function reloadCurrentPage() {
+  await loadPage();
+  if (items.value.length === 0 && currentPage.value > 1) {
+    currentPage.value -= 1;
   }
 }
 
@@ -270,7 +300,7 @@ async function handleCreateAgent() {
     // create 接口仅返回布尔值，按名称查出新记录后跳转编辑页
     const list = await agentApi.list();
     const created = list.find((item) => item.agentName === agentName);
-    await (created?.id ? router.push(`/agents/${created.id}/builder`) : loadList());
+    await (created?.id ? router.push(`/agents/${created.id}/builder`) : reloadCurrentPage());
   } finally {
     creating.value = false;
   }
@@ -314,7 +344,7 @@ async function handleSaveBaseConfig() {
   });
   message.success($t('agents.messages.baseConfigUpdated'));
   baseConfigModalApi.close();
-  await loadList();
+  await reloadCurrentPage();
 }
 
 async function handleSave(payload: Partial<AigcAgent>) {
@@ -328,7 +358,7 @@ async function handleSave(payload: Partial<AigcAgent>) {
       message.success($t('agents.messages.created'));
     }
     showEdit.value = false;
-    await loadList();
+    await reloadCurrentPage();
   } finally {
     saving.value = false;
   }
@@ -349,13 +379,13 @@ async function handleDelete(item: AigcAgent) {
     onPositiveClick: async () => {
       await agentApi.remove(item.id!);
       message.success($t('agents.messages.deleted'));
-      await loadList();
+      await reloadCurrentPage();
     },
   });
 }
 
 async function initializePage() {
-  await Promise.all([loadLookups(), loadList()]);
+  await Promise.all([loadLookups(), reloadCurrentPage()]);
 }
 
 onMounted(initializePage);
@@ -385,13 +415,13 @@ onMounted(initializePage);
       </PageHeader>
 
       <LcListCard
-        :active-tag="selectedTag"
-        :items="pagedItems"
+        :active-tag="statusFilter"
+        :items="items"
         :loading="loading"
         :search-placeholder="$t('agents.list.searchPlaceholder')"
         :search-value="keyword"
-        :tags="tagFilterOptions"
-        @update:active-tag="selectedTag = $event"
+        :tags="statusFilterOptions"
+        @update:active-tag="handleStatusFilterChange"
         @update:search-value="keyword = $event"
       >
         <template #item="{ item }">
@@ -413,11 +443,14 @@ onMounted(initializePage);
         </template>
       </LcListCard>
 
-      <div v-if="filteredItems.length > pageSize" class="flex justify-end">
+      <div
+        v-if="total > pageSize"
+        class="flex justify-end rounded-xl border border-border bg-card px-4 py-2.5"
+      >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="filteredItems.length"
+          :item-count="total"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

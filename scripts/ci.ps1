@@ -7,6 +7,13 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
+# 统一使用 JDK17（本机默认 PATH 可能指向其它版本）
+if (-not $env:JAVA_HOME) {
+    if (Test-Path 'E:\java\jdk17') {
+        $env:JAVA_HOME = 'E:\java\jdk17'
+    }
+}
+
 $mvn = 'mvn'
 if ($env:MVN_CMD) {
     $mvn = $env:MVN_CMD
