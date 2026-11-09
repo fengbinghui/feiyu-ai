@@ -245,6 +245,8 @@ public class AuthServiceImpl implements AuthService {
         updatePassword(user.getId(), request.newPassword());
         // 改密成功后清除登录失败计数与锁定状态，避免历史失败记录影响新密码登录。
         loginAttemptService.clear(user.getUsername());
+        // 安全加固：改密后吊销该账号所有既有会话，旧 token 立即失效，需用新密码重新登录。
+        StpUtil.logout(user.getId());
         log.info("用户修改密码成功，userId={}, username={}", user.getId(), user.getUsername());
     }
 
@@ -279,6 +281,8 @@ public class AuthServiceImpl implements AuthService {
         updatePassword(user.getId(), request.newPassword());
         // 管理员重置密码后清除登录失败锁定，确保用户可立即用新密码登录。
         loginAttemptService.clear(user.getUsername());
+        // 安全加固：管理员重置密码后强制该账号下线，旧 token 立即失效。
+        StpUtil.logout(user.getId());
         log.info("管理员重置用户密码成功，userId={}, username={}", user.getId(), user.getUsername());
     }
 
