@@ -26,13 +26,17 @@ const emit = defineEmits<{
   delete: [item: AigcVectorStore];
   edit: [item: AigcVectorStore];
 }>();
+
 const metaItems = computed(() => [
   {
     label: $t('vectorStores.card.providerLabel'),
     value: findOptionLabel(VECTOR_PROVIDER_OPTIONS, props.item.provider),
   },
-  {label: $t('vectorStores.card.database'), value: props.item.databaseName || '--'},
-  {label: $t('vectorStores.card.dimension'), value: props.item.dimension ?? '--'},
+  {
+    label: $t('vectorStores.card.database'),
+    value: props.item.databaseName || '--',
+  },
+  { label: $t('vectorStores.card.dimension'), value: props.item.dimension ?? '--' },
   {
     label: $t('common.labels.host'),
     value: props.item.host
@@ -46,7 +50,7 @@ const metaItems = computed(() => [
   <LcCard
     :icon-component="DatabaseZap"
     :meta-items="metaItems"
-    class="cursor-pointer"
+    class="c-vector-card h-full cursor-pointer"
     hoverable
     @click="emit('edit', item)"
   >
@@ -61,7 +65,7 @@ const metaItems = computed(() => [
     </template>
 
     <template #description>
-      <p class="text-[11px] text-muted-foreground line-clamp-2">
+      <p class="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
         {{
           $t('vectorStores.card.nodeSummary', {
             host: item.host || '--',
@@ -79,13 +83,13 @@ const metaItems = computed(() => [
     </template>
 
     <template #footer-extra>
-      <div class="truncate whitespace-nowrap text-[11px] text-muted-foreground">
+      <div class="truncate whitespace-nowrap text-[10px] text-muted-foreground">
         {{ formatRelativeTime(item.updateTime) }}
       </div>
     </template>
 
     <template #footer>
-      <NSpace :size="4">
+      <NSpace :size="2">
         <NButton
           v-tippy="$t('common.actions.edit')"
           circle
@@ -111,3 +115,17 @@ const metaItems = computed(() => [
     </template>
   </LcCard>
 </template>
+
+<style scoped>
+.c-vector-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.c-vector-card:hover {
+  transform: translateY(-2px);
+}
+</style>

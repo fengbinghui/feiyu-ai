@@ -14,7 +14,10 @@
     "menuAuth": "Menu Authorization",
     "menuSearchPlaceholder": "Search menu names",
     "grantAll": "Grant all",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "groups": {
+      "basic": "Basic Information"
+    }
   },
   "card": {
     "unnamed": "Untitled Role",
@@ -33,6 +36,7 @@
     "updateTime": "Updated At"
   },
   "list": {
+    "description": "Manage roles and menu permissions for different responsibilities",
     "tableTitle": "Role Management",
     "keywordPlaceholder": "Role name / code / description",
     "editRole": "Edit role",

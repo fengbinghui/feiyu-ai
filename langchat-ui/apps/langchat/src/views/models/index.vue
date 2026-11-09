@@ -19,10 +19,12 @@ import {
 } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import {NButton, NEmpty, NInput, NPagination, NSpin} from 'naive-ui';
+import {NButton, NInput, NPagination, NSpin} from 'naive-ui';
 
 import {dialog, message} from '#/adapter/naive';
 import {modelApi} from '#/api/aigc/model';
+import LcEmptyState from '#/components/LcEmptyState/index.vue';
+import PageHeader from '#/components/PageHeader/index.vue';
 
 import ModelCard from './card.vue';
 import ModelEdit from './edit.vue';
@@ -289,57 +291,143 @@ onMounted(loadList);
 
 <template>
   <Page>
-    <div class="flex flex-col gap-2 h-full">
-      <div class="flex flex-col gap-3 md:flex-row md:items-stretch h-full">
-        <aside
-          class="rounded-xl border border-border bg-card p-3 md:w-[236px] md:flex-none md:overflow-y-auto"
+    <div class="flex h-full min-h-0 flex-col gap-3">
+      <PageHeader
+        :description="$t('models.list.description')"
+        :title="$t('models.list.title')"
+      >
+        <template #icon>
+          <Bot class="size-5 text-primary" />
+        </template>
+        <template #actions>
+          <NButton secondary @click="loadList">
+            <template #icon>
+              <RefreshCcw class="size-4" />
+            </template>
+            {{ $t('common.actions.refresh') }}
+          </NButton>
+          <NButton type="primary" @click="handleCreate">
+            <template #icon>
+              <Plus class="size-4" />
+            </template>
+            {{ $t('models.form.createTitle') }}
+          </NButton>
+        </template>
+      </PageHeader>
+
+      <!-- 搜索筛选工具条 -->
+      <div class="lc-surface shrink-0 px-4 py-3">
+        <div
+          class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
         >
-          <div
-            class="flex items-center gap-2 px-2 pb-2.5 text-sm font-semibold text-foreground"
-          >
-            <Factory class="size-4 text-primary" />
-            {{ $t('common.labels.provider') }}
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <button
+              v-for="option in typeFilterOptions"
+              :key="String(option.value)"
+              :aria-pressed="selectedType === option.value"
+              :class="
+                selectedType === option.value
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-border/80 bg-background text-foreground hover:border-primary/25 hover:bg-primary/5'
+              "
+              class="flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
+              type="button"
+              @click="handleTypeFilter(String(option.value))"
+            >
+              <component :is="option.icon" class="size-3.5" />
+              <span>{{ option.label }}</span>
+            </button>
           </div>
 
-          <div class="space-y-1.5">
+          <div class="flex w-full items-center gap-2 xl:w-auto">
+            <NInput
+              v-model:value="keyword"
+              class="lc-filter-input w-full xl:w-[260px]"
+              clearable
+              :placeholder="$t('models.list.searchPlaceholder')"
+            >
+              <template #prefix>
+                <Search class="size-4 text-muted-foreground" />
+              </template>
+            </NInput>
+            <NButton secondary @click="resetFilters">
+              <template #icon>
+                <RotateCcw class="size-4" />
+              </template>
+              {{ $t('common.actions.reset') }}
+            </NButton>
+          </div>
+        </div>
+
+        <div
+          class="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground"
+        >
+          <ListFilter class="size-3.5 shrink-0" />
+          <span class="truncate">{{ pageDescription }}</span>
+          <span class="h-1 w-1 rounded-full bg-border"></span>
+          <span
+            class="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5"
+          >
+            <template v-if="typeof activeProviderMeta.icon === 'string'">
+              <img :src="activeProviderMeta.icon" class="size-3" alt="" />
+            </template>
+            <component
+              :is="activeProviderMeta.icon"
+              v-else
+              class="size-3"
+            />
+            {{ activeProviderMeta.label }}
+          </span>
+          <span
+            class="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5"
+          >
+            <component :is="activeTypeMeta.icon" class="size-3" />
+            {{ activeTypeMeta.label }}
+          </span>
+          <span class="ml-auto">
+            {{ $t('models.list.total', { count: filteredItems.length }) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex min-h-0 flex-1 gap-3">
+        <!-- 供应商筛选 -->
+        <aside
+          class="lc-surface hidden w-[224px] shrink-0 flex-col overflow-y-auto p-3 md:flex"
+        >
+          <div
+            class="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted-foreground"
+          >
+            <Factory class="size-3.5 text-primary" />
+            {{ $t('common.labels.provider') }}
+          </div>
+          <div class="flex flex-col gap-1">
             <button
               v-for="option in providerFilterOptions"
               :key="String(option.value)"
               :class="
                 selectedProvider === option.value
-                  ? 'border-primary/45 bg-primary/8 text-primary'
-                  : 'border-border/70 bg-background text-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground hover:bg-muted/60 hover:text-primary'
               "
-              class="flex w-full cursor-pointer items-center justify-between rounded-lg border px-2.5 py-2 text-left transition-colors"
+              class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors"
               type="button"
               @click="selectedProvider = String(option.value)"
             >
               <span class="flex min-w-0 items-center gap-2">
                 <span
-                  class="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted/30"
+                  class="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-border/70 bg-background"
                 >
                   <template v-if="typeof option.icon === 'string'">
-                    <img
-                      :src="option.icon"
-                      class="size-3.5 shrink-0"
-                      alt=""
-                    />
+                    <img :src="option.icon" class="size-3 shrink-0" alt="" />
                   </template>
                   <component
                     :is="option.icon"
                     v-else
-                    class="size-3.5 shrink-0 text-muted-foreground"
+                    class="size-3 shrink-0 text-muted-foreground"
                   />
                 </span>
-                <span
-                  :class="
-                    selectedProvider === option.value
-                      ? 'bg-primary'
-                      : 'bg-border'
-                  "
-                  class="h-3.5 w-0.5 rounded-full"
-                ></span>
-                <span class="truncate text-[13px] font-medium leading-5">
+                <span class="truncate text-xs font-medium leading-5">
                   {{ option.label }}
                 </span>
               </span>
@@ -349,7 +437,7 @@ onMounted(loadList);
                     ? 'bg-primary/10 text-primary'
                     : 'bg-muted text-muted-foreground'
                 "
-                class="ml-2 rounded-full px-1.5 py-0 text-[10px]"
+                class="ml-1 rounded-full px-1.5 py-0 text-[10px] font-medium"
               >
                 {{ option.count }}
               </span>
@@ -357,209 +445,89 @@ onMounted(loadList);
           </div>
         </aside>
 
-        <section class="min-w-0 md:flex-1">
-          <div class="flex min-w-0 flex-col gap-3">
-            <div
-              class="rounded-xl border border-border bg-card p-2.5"
-            >
-              <div class="flex flex-col gap-2.5">
-                <div
-                  class="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between"
+        <section class="flex min-w-0 flex-1 flex-col gap-3">
+          <!-- 推荐模型 / 建议配置项 -->
+          <div
+            v-if="selectedProvider && selectedType"
+            class="grid shrink-0 gap-2 lg:grid-cols-2"
+          >
+            <div class="lc-surface px-3 py-2">
+              <div
+                class="mb-1 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"
+              >
+                <component :is="activeProviderMeta.icon" class="size-3.5" />
+                {{ $t('models.list.recommended') }}
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="modelName in recommendedModels"
+                  :key="modelName"
+                  class="rounded-md border border-border/80 bg-muted/30 px-1.5 py-0.5 text-[10px] text-foreground"
                 >
-                  <div class="min-w-0">
-                    <div
-                      class="flex items-center gap-2 text-sm font-semibold text-foreground"
-                    >
-                      <Bot class="size-5 text-primary" />
-                      {{ $t('models.list.title') }}
-                    </div>
-                    <div
-                      class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] leading-4 text-muted-foreground"
-                    >
-                      <span>{{ pageDescription }}</span>
-                      <span class="h-1 w-1 rounded-full bg-border"></span>
-                      <span
-                        class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5"
-                      >
-                        <template v-if="typeof activeProviderMeta.icon === 'string'">
-                          <img
-                            :src="activeProviderMeta.icon"
-                            class="size-3.5"
-                            alt=""
-                          />
-                        </template>
-                        <component
-                          :is="activeProviderMeta.icon"
-                          v-else
-                          class="size-3.5"
-                        />
-                        {{ activeProviderMeta.label }}
-                      </span>
-                      <span
-                        class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5"
-                      >
-                        <component :is="activeTypeMeta.icon" class="size-3.5" />
-                        {{ activeTypeMeta.label }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="flex w-full items-center gap-2 xl:w-auto">
-                    <div class="w-full xl:w-[280px]">
-                      <NInput
-                        v-model:value="keyword"
-                        clearable
-                        :placeholder="$t('models.list.searchPlaceholder')"
-                      >
-                        <template #prefix>
-                          <Search class="size-4 text-muted-foreground" />
-                        </template>
-                      </NInput>
-                    </div>
-                    <NButton secondary @click="resetFilters">
-                      <template #icon>
-                        <RotateCcw class="size-4" />
-                      </template>
-                      {{ $t('common.actions.reset') }}
-                    </NButton>
-                    <NButton secondary @click="loadList">
-                      <template #icon>
-                        <RefreshCcw class="size-4" />
-                      </template>
-                      {{ $t('common.actions.refresh') }}
-                    </NButton>
-                    <NButton type="primary" @click="handleCreate">
-                      <template #icon>
-                        <Plus class="size-4" />
-                      </template>
-                      {{ $t('models.form.createTitle') }}
-                    </NButton>
-                  </div>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                  <div class="flex flex-wrap gap-2">
-                      <button
-                        v-for="option in typeFilterOptions"
-                        :key="String(option.value)"
-                        :class="
-                          selectedType === option.value
-                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                            : 'border-border/80 bg-background text-foreground hover:border-primary/30 hover:bg-primary/5'
-                        "
-                        class="flex h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 text-left transition-colors"
-                        type="button"
-                        :aria-pressed="selectedType === option.value"
-                        @click="handleTypeFilter(String(option.value))"
-                      >
-                        <span
-                          class="inline-flex size-6 items-center justify-center rounded-md border border-border/70 bg-muted/40"
-                        >
-                          <component :is="option.icon" class="size-3" />
-                        </span>
-                        <span class="text-xs font-medium">{{ option.label }}</span>
-                      </button>
-                  </div>
-
-                  <div
-                    class="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground"
-                  >
-                    <ListFilter class="size-3.5" />
-                    {{ $t('models.list.total', { count: filteredItems.length }) }}
-                  </div>
-                </div>
-
-                <div
-                  v-if="selectedProvider && selectedType"
-                  class="grid gap-1.5 lg:grid-cols-2"
+                  {{ modelName }}
+                </span>
+                <span
+                  v-if="recommendedModels.length === 0"
+                  class="text-[10px] text-muted-foreground"
                 >
-                  <div
-                    class="rounded-lg border border-border/70 bg-background/80 p-2"
-                  >
-                    <div
-                      class="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground"
-                    >
-                      <component
-                        :is="activeProviderMeta.icon"
-                        class="size-3.5"
-                      />
-                      {{ $t('models.list.recommended') }}
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      <span
-                        v-for="modelName in recommendedModels"
-                        :key="modelName"
-                        class="rounded-md border border-border/80 bg-muted/30 px-1.5 py-0.5 text-[10px] text-foreground"
-                      >
-                        {{ modelName }}
-                      </span>
-                      <span
-                        v-if="recommendedModels.length === 0"
-                        class="text-[10px] text-muted-foreground"
-                      >
-                        {{ $t('models.list.noRecommended') }}
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    class="rounded-lg border border-border/70 bg-background/80 p-2"
-                  >
-                    <div
-                      class="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground"
-                    >
-                      <component :is="activeTypeMeta.icon" class="size-3.5" />
-                      {{ $t('models.list.suggestedConfig') }}
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      <span
-                        v-for="configName in activeTypeConfigItems"
-                        :key="configName"
-                        class="rounded-md border border-border/80 bg-muted/30 px-1.5 py-0.5 text-[10px] text-foreground"
-                      >
-                        {{ configName }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  {{ $t('models.list.noRecommended') }}
+                </span>
               </div>
             </div>
+            <div class="lc-surface px-3 py-2">
+              <div
+                class="mb-1 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"
+              >
+                <component :is="activeTypeMeta.icon" class="size-3.5" />
+                {{ $t('models.list.suggestedConfig') }}
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="configName in activeTypeConfigItems"
+                  :key="configName"
+                  class="rounded-md border border-border/80 bg-muted/30 px-1.5 py-0.5 text-[10px] text-foreground"
+                >
+                  {{ configName }}
+                </span>
+              </div>
+            </div>
+          </div>
 
-            <NSpin :show="loading">
-              <div
-                v-if="pagedItems.length > 0"
-                class="grid gap-2.5 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-              >
-                <ModelCard
-                  v-for="item in pagedItems"
-                  :key="item.id || item.model"
-                  :item="item"
-                  @delete="handleDelete"
-                  @edit="handleEdit"
-                />
-              </div>
-              <div
-                v-else
-                class="flex min-h-[200px] items-center justify-center rounded-xl border border-dashed border-border bg-card p-5"
-              >
-                <NEmpty :description="$t('models.list.empty')">
-                  <template #icon>
-                    <BotOff class="mx-auto size-8 text-muted-foreground" />
-                  </template>
-                  <template #extra>
-                    <NButton secondary @click="resetFilters">
-                      <template #icon>
-                        <Eraser class="size-4" />
-                      </template>
-                      {{ $t('common.actions.clearFilter') }}
-                    </NButton>
-                  </template>
-                </NEmpty>
-              </div>
-            </NSpin>
+          <!-- 模型卡片列表 -->
+          <div class="lc-surface flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div class="min-h-0 flex-1 overflow-y-auto p-3">
+              <NSpin :show="loading" class="block w-full">
+                <div
+                  v-if="pagedItems.length > 0"
+                  class="grid gap-3 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                >
+                  <ModelCard
+                    v-for="item in pagedItems"
+                    :key="item.id || item.model"
+                    :item="item"
+                    @delete="handleDelete"
+                    @edit="handleEdit"
+                  />
+                </div>
+                <LcEmptyState
+                  v-else
+                  :description="$t('models.list.empty')"
+                  :icon="BotOff"
+                  :title="$t('common.empty.noData')"
+                >
+                  <NButton secondary @click="resetFilters">
+                    <template #icon>
+                      <Eraser class="size-4" />
+                    </template>
+                    {{ $t('common.actions.clearFilter') }}
+                  </NButton>
+                </LcEmptyState>
+              </NSpin>
+            </div>
 
             <div
               v-if="filteredItems.length > pageSize"
-              class="flex justify-end"
+              class="flex shrink-0 justify-end border-t border-border/60 px-3 py-2"
             >
               <NPagination
                 v-model:page="currentPage"

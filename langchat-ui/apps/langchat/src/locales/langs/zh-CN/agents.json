@@ -44,12 +44,18 @@
     "appNamePlaceholder": "请输入应用名称",
     "appDescription": "应用描述",
     "appDescriptionPlaceholder": "请输入应用描述",
-    "selectModel": "选择模型"
+    "selectModel": "选择模型",
+    "groups": {
+      "basic": "基础信息",
+      "model": "模型与状态",
+      "content": "内容描述"
+    }
   },
   "card": {
     "unnamed": "未命名智能体"
   },
   "list": {
+    "description": "创建、配置与发布企业级 AI Agent 应用",
     "searchPlaceholder": "按智能体名称、状态搜索",
     "baseConfigTitle": "应用基础配置"
   },

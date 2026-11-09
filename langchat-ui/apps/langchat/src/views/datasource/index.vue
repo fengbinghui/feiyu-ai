@@ -1,19 +1,19 @@
 <script lang="ts" setup>
 import type { AigcDatasource } from '#/api/aigc/datasource';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
-import { Plus, RefreshCcw } from '@vben/icons';
+import { Database, Plus, RefreshCcw, Search } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { NButton, NPagination } from 'naive-ui';
+import { NButton, NInput, NPagination } from 'naive-ui';
 
 import { dialog, message } from '#/adapter/naive';
 import { deleteDataSource, listDataSources } from '#/api/aigc/datasource';
-import LcActionCard from '#/components/LcActionCard/index.vue';
-import LcListCard from '#/components/LcListCard/index.vue';
+import LcCard from '#/components/LcCard/index.vue';
+import LcEmptyState from '#/components/LcEmptyState/index.vue';
 
 import DatasourceCard from './card.vue';
 import DatasourceEdit from './edit.vue';
@@ -22,25 +22,41 @@ const router = useRouter();
 
 const loading = ref(false);
 const saving = ref(false);
+const keyword = ref('');
 const currentPage = ref(1);
 const pageSize = ref(6);
 const items = ref<AigcDatasource[]>([]);
 const currentItem = ref<null | Partial<AigcDatasource>>(null);
 const showEdit = ref(false);
 
-const pagedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return items.value.slice(start, start + pageSize.value);
+const filteredItems = computed(() => {
+  const query = keyword.value.trim().toLowerCase();
+  if (!query) {
+    return items.value;
+  }
+  return items.value.filter((item) =>
+    [
+      item.name,
+      item.dbType,
+      item.host,
+      item.databaseName,
+      item.remark,
+    ]
+      .map((value) => String(value ?? '').toLowerCase())
+      .some((value) => value.includes(query)),
+  );
 });
 
-const actionItems = computed(() => [
-  {
-    key: 'refresh',
-    label: $t('common.actions.refreshList'),
-    icon: RefreshCcw,
-  },
-  { key: 'create', label: $t('datasource.list.create'), icon: Plus },
-]);
+const pagedItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredItems.value.slice(start, start + pageSize.value);
+});
+
+const hasActiveFilter = computed(() => keyword.value.trim() !== '');
+
+watch(keyword, () => {
+  currentPage.value = 1;
+});
 
 async function loadList() {
   loading.value = true;
@@ -88,16 +104,6 @@ async function handleRemove(item: AigcDatasource) {
   });
 }
 
-function handleAction(action: { key: string }) {
-  if (action.key === 'refresh') {
-    void loadList();
-    return;
-  }
-  if (action.key === 'create') {
-    openCreate();
-  }
-}
-
 async function handleSave(_payload: Partial<AigcDatasource>) {
   saving.value = true;
   try {
@@ -117,44 +123,111 @@ onMounted(initializePage);
 </script>
 
 <template>
-  <Page>
-    <div class="flex flex-col gap-2">
-      <LcListCard
-        :empty-description="$t('datasource.list.emptyDescription')"
-        :empty-hint="$t('datasource.list.emptyHint')"
-        :items="pagedItems"
-        :loading="loading"
-        :search-placeholder="$t('datasource.list.searchPlaceholder')"
-        @update:search-value="currentPage = 1"
-      >
-        <template #leading-card>
-          <LcActionCard
-            :actions="actionItems"
-            :description="$t('datasource.list.actionsDescription')"
-            :title="$t('datasource.list.actionsTitle')"
-            @action="handleAction"
-          />
-        </template>
-        <template #item="{ item }">
-          <DatasourceCard
-            :item="item"
-            @delete="handleRemove"
-            @detail="openDetail"
-            @edit="handleEdit"
-          />
-        </template>
-        <template #empty-extra>
-          <NButton type="primary" @click="openCreate">{{
-            $t('datasource.list.create')
-          }}</NButton>
-        </template>
-      </LcListCard>
+  <Page
+    content-class="p-4"
+    :description="$t('datasource.list.actionsDescription')"
+    header-class="px-4 py-3.5"
+    :title="$t('menu.dynamic.datasources')"
+  >
+    <template #extra>
+      <div class="flex items-center gap-2">
+        <NButton secondary @click="loadList">
+          <template #icon>
+            <RefreshCcw class="size-3.5" />
+          </template>
+          {{ $t('common.actions.refreshList') }}
+        </NButton>
+        <NButton type="primary" @click="openCreate">
+          <template #icon>
+            <Plus class="size-3.5" />
+          </template>
+          {{ $t('datasource.list.create') }}
+        </NButton>
+      </div>
+    </template>
 
-      <div v-if="items.length > pageSize" class="flex justify-end">
+    <div class="flex flex-col gap-3">
+      <!-- 搜索工具条 -->
+      <div
+        class="flex flex-col gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between"
+      >
+        <div class="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <Database class="size-3.5 shrink-0 text-primary" />
+          <span class="truncate">
+            {{ $t('common.labels.count', { count: filteredItems.length }) }}
+          </span>
+        </div>
+        <div class="w-full shrink-0 lg:w-72">
+          <NInput
+            v-model:value="keyword"
+            clearable
+            :placeholder="$t('datasource.list.searchPlaceholder')"
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
+        </div>
+      </div>
+
+      <!-- 数据源卡片网格 -->
+      <div
+        v-if="loading"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      >
+        <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
+      </div>
+      <div
+        v-else-if="pagedItems.length > 0"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      >
+        <DatasourceCard
+          v-for="item in pagedItems"
+          :key="item.id"
+          :item="item"
+          @delete="handleRemove"
+          @detail="openDetail"
+          @edit="handleEdit"
+        />
+      </div>
+      <div
+        v-else
+        class="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
+      >
+        <LcEmptyState
+          :description="
+            hasActiveFilter
+              ? $t('datasource.list.searchPlaceholder')
+              : $t('datasource.list.emptyHint')
+          "
+          :icon="Database"
+          :title="
+            hasActiveFilter
+              ? $t('common.empty.noData')
+              : $t('datasource.list.emptyDescription')
+          "
+        >
+          <NButton v-if="!hasActiveFilter" type="primary" @click="openCreate">
+            <template #icon>
+              <Plus class="size-3.5" />
+            </template>
+            {{ $t('datasource.list.create') }}
+          </NButton>
+          <NButton v-else quaternary @click="keyword = ''">
+            {{ $t('common.actions.clearFilter') }}
+          </NButton>
+        </LcEmptyState>
+      </div>
+
+      <!-- 分页 -->
+      <div
+        v-if="filteredItems.length > pageSize"
+        class="flex items-center justify-end"
+      >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
-          :item-count="items.length"
+          :item-count="filteredItems.length"
           :page-sizes="[6, 9, 12, 18]"
           show-size-picker
         />

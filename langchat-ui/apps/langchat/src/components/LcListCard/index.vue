@@ -106,39 +106,43 @@ function resolveCardIcon(item: Record<string, any>) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2.5">
-    <div
-      class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
-    >
-      <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-        <NTag
-          v-for="option in normalizedTags"
-          :key="option.value"
-          :bordered="activeTag !== option.value"
-          :type="activeTag === option.value ? 'primary' : 'default'"
-          class="lc-list-card-tag cursor-pointer rounded-lg"
-          @click="emit('update:active-tag', String(option.value))"
-        >
-          <span class="inline-flex items-center gap-1">
-            <component :is="option.icon" class="size-3" />
-            <span>{{ option.label }}</span>
-          </span>
-        </NTag>
-      </div>
+  <div class="flex flex-col gap-3">
+    <!-- 搜索与标签筛选工具条 -->
+    <div class="lc-surface shrink-0 px-4 py-3">
+      <div
+        class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+      >
+        <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+          <NTag
+            v-for="option in normalizedTags"
+            :key="option.value"
+            :bordered="activeTag !== option.value"
+            :type="activeTag === option.value ? 'primary' : 'default'"
+            class="lc-list-card-tag cursor-pointer rounded-md"
+            @click="emit('update:active-tag', String(option.value))"
+          >
+            <span class="inline-flex items-center gap-1">
+              <component :is="option.icon" class="size-3" />
+              <span>{{ option.label }}</span>
+            </span>
+          </NTag>
+        </div>
 
-      <div class="w-full sm:w-72">
-        <NInput
-          :value="searchValue"
-          clearable
-          :placeholder="searchPlaceholder ?? $t('components.listCard.searchPlaceholder')"
-          @update:value="
-            (value) => emit('update:search-value', String(value ?? ''))
-          "
-        >
-          <template #prefix>
-            <Search class="size-4 text-muted-foreground" />
-          </template>
-        </NInput>
+        <div class="w-full sm:w-72">
+          <NInput
+            :value="searchValue"
+            class="lc-filter-input"
+            clearable
+            :placeholder="searchPlaceholder ?? $t('components.listCard.searchPlaceholder')"
+            @update:value="
+              (value) => emit('update:search-value', String(value ?? ''))
+            "
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
+        </div>
       </div>
     </div>
 
@@ -154,7 +158,7 @@ function resolveCardIcon(item: Record<string, any>) {
 
     <div
       v-else-if="normalizedItems.length > 0 || hasLeadingCard"
-      class="flex flex-col gap-2.5"
+      class="flex flex-col gap-3"
     >
       <div :class="columnsClass">
         <slot name="leading-card"></slot>
@@ -180,28 +184,31 @@ function resolveCardIcon(item: Record<string, any>) {
         </template>
       </div>
 
+      <div v-if="normalizedItems.length === 0" class="lc-surface">
+        <LcEmptyState
+          :description="emptyHint"
+          :title="emptyDescription ?? $t('common.empty.noData')"
+        >
+          <slot name="empty-extra"></slot>
+        </LcEmptyState>
+      </div>
+    </div>
+
+    <div v-else class="lc-surface">
       <LcEmptyState
-        v-if="normalizedItems.length === 0"
         :description="emptyHint"
         :title="emptyDescription ?? $t('common.empty.noData')"
       >
         <slot name="empty-extra"></slot>
       </LcEmptyState>
     </div>
-
-    <LcEmptyState
-      v-else
-      :description="emptyHint"
-      :title="emptyDescription ?? $t('common.empty.noData')"
-    >
-      <slot name="empty-extra"></slot>
-    </LcEmptyState>
   </div>
 </template>
 
 <style scoped>
 :deep(.lc-list-card-tag.n-tag) {
-  padding: 1px 10px;
+  height: 26px;
+  padding: 2px 10px;
   cursor: pointer;
 }
 
@@ -210,7 +217,7 @@ function resolveCardIcon(item: Record<string, any>) {
 }
 
 :deep(.lc-list-card-tag .n-tag__content) {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
 }
 </style>

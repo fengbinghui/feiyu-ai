@@ -42,7 +42,7 @@ const metaItems = computed(() => [
 </script>
 
 <template>
-  <LcCard :icon-size="36" :meta-items="metaItems" class="cursor-pointer" hoverable @click="emit('edit', item)">
+  <LcCard :icon-size="36" :meta-items="metaItems" class="lc-card-lift cursor-pointer" hoverable @click="emit('edit', item)">
     <template #icon>
       <span
         :style="{ height: '36px', width: '36px' }"

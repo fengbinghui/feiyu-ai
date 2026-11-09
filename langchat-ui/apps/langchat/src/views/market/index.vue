@@ -194,7 +194,7 @@ onMounted(() => {
       <NSpin :show="loading" class="min-h-[420px] w-full">
         <div
           v-if="filteredPublishedAgents.length > 0"
-          class="grid w-full gap-3 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+          class="grid w-full gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
         >
           <MarketCard
             v-for="item in filteredPublishedAgents"

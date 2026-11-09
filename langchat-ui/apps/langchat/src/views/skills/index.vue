@@ -6,22 +6,32 @@ import type { AigcSkill } from '#/api/aigc/skill';
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { FolderUp, PackageOpen } from '@vben/icons';
+import {
+  FolderUp,
+  LayoutGrid,
+  PackageOpen,
+  RefreshCcw,
+  Search,
+  Tag,
+} from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import {
   NAlert,
+  NButton,
+  NInput,
   NPagination,
   NRadioButton,
   NRadioGroup,
+  NTag,
   NUpload,
   NUploadDragger,
 } from 'naive-ui';
 
 import { dialog, message } from '#/adapter/naive';
 import { skillApi } from '#/api/aigc/skill';
-import LcActionCard from '#/components/LcActionCard/index.vue';
-import LcListCard from '#/components/LcListCard/index.vue';
+import LcCard from '#/components/LcCard/index.vue';
+import LcEmptyState from '#/components/LcEmptyState/index.vue';
 import { aigcCommonTagOptions } from '#/views/shared/aigc/options';
 import { parseTagList, stringifyTagList } from '#/views/shared/aigc/tags';
 
@@ -79,13 +89,13 @@ const uploadReady = computed(() =>
     : folderFileList.value.length > 0,
 );
 
+const hasActiveFilter = computed(
+  () => keyword.value.trim() !== '' || selectedTag.value !== 'ALL',
+);
+
 watch([keyword, selectedTag], () => {
   currentPage.value = 1;
 });
-
-const actionItems = computed(() => [
-  { key: 'upload', label: $t('skills.list.upload'), icon: PackageOpen },
-]);
 
 const [UploadModal, uploadModalApi] = useVbenModal({
   class: 'w-[640px]',
@@ -124,12 +134,6 @@ function openUpload() {
   folderFileList.value = [];
   uploadModalApi.setState({ confirmDisabled: true });
   uploadModalApi.open();
-}
-
-function handleAction(action: { key: string }) {
-  if (action.key === 'upload') {
-    openUpload();
-  }
 }
 
 function resolveRelativePath(option: UploadFileInfo) {
@@ -255,37 +259,113 @@ onMounted(loadList);
 </script>
 
 <template>
-  <Page>
-    <div class="flex flex-col gap-2">
-      <LcListCard
-        :active-tag="selectedTag"
-        :items="pagedItems"
-        :loading="loading"
-        :search-placeholder="$t('skills.list.searchPlaceholder')"
-        :search-value="keyword"
-        :tags="tagFilterOptions"
-        @update:active-tag="selectedTag = $event"
-        @update:search-value="keyword = $event"
-      >
-        <template #leading-card>
-          <LcActionCard
-            :actions="actionItems"
-            :description="$t('skills.list.actionsDescription')"
-            :title="$t('skills.list.actionsTitle')"
-            @action="handleAction"
-          />
-        </template>
-        <template #item="{ item }">
-          <SkillCard
-            :item="item"
-            @delete="handleDelete"
-            @edit="handleEdit"
-            @toggle="handleToggle"
-          />
-        </template>
-      </LcListCard>
+  <Page
+    content-class="p-4"
+    :description="$t('skills.list.actionsDescription')"
+    header-class="px-4 py-3.5"
+    :title="$t('menu.dynamic.skills')"
+  >
+    <template #extra>
+      <div class="flex items-center gap-2">
+        <NButton secondary @click="loadList">
+          <template #icon>
+            <RefreshCcw class="size-3.5" />
+          </template>
+          {{ $t('common.actions.refresh') }}
+        </NButton>
+        <NButton type="primary" @click="openUpload">
+          <template #icon>
+            <PackageOpen class="size-3.5" />
+          </template>
+          {{ $t('skills.list.upload') }}
+        </NButton>
+      </div>
+    </template>
 
-      <div v-if="filteredItems.length > pageSize" class="flex justify-end">
+    <div class="flex flex-col gap-3">
+      <!-- 筛选 / 搜索工具条 -->
+      <div
+        class="flex flex-col gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between"
+      >
+        <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+          <NTag
+            v-for="(option, index) in tagFilterOptions"
+            :key="option.value"
+            :bordered="selectedTag !== option.value"
+            :type="selectedTag === option.value ? 'primary' : 'default'"
+            class="c-filter-tag cursor-pointer"
+            @click="selectedTag = option.value"
+          >
+            <span class="inline-flex items-center gap-1">
+              <LayoutGrid v-if="index === 0" class="size-3" />
+              <Tag v-else class="size-3" />
+              <span>{{ option.label }}</span>
+            </span>
+          </NTag>
+        </div>
+        <div class="w-full shrink-0 lg:w-72">
+          <NInput
+            v-model:value="keyword"
+            clearable
+            :placeholder="$t('skills.list.searchPlaceholder')"
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
+        </div>
+      </div>
+
+      <!-- 技能卡片网格 -->
+      <div
+        v-if="loading"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      >
+        <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
+      </div>
+      <div
+        v-else-if="pagedItems.length > 0"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      >
+        <SkillCard
+          v-for="item in pagedItems"
+          :key="item.id"
+          :item="item"
+          @delete="handleDelete"
+          @edit="handleEdit"
+          @toggle="handleToggle"
+        />
+      </div>
+      <div
+        v-else
+        class="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
+      >
+        <LcEmptyState
+          :description="
+            hasActiveFilter
+              ? $t('skills.list.searchPlaceholder')
+              : $t('skills.list.zipDropHint')
+          "
+          :icon="PackageOpen"
+          :title="$t('common.empty.noData')"
+        >
+          <NButton v-if="!hasActiveFilter" type="primary" @click="openUpload">
+            <template #icon>
+              <PackageOpen class="size-3.5" />
+            </template>
+            {{ $t('skills.list.upload') }}
+          </NButton>
+          <NButton v-else quaternary @click="keyword = ''; selectedTag = 'ALL'">
+            {{ $t('common.actions.clearFilter') }}
+          </NButton>
+        </LcEmptyState>
+      </div>
+
+      <!-- 分页 -->
+      <div
+        v-if="filteredItems.length > pageSize"
+        class="flex items-center justify-end"
+      >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
@@ -304,13 +384,26 @@ onMounted(loadList);
 
     <UploadModal>
       <div class="flex flex-col gap-3">
-        <NAlert type="info" :show-icon="true" :title="$t('skills.list.formatTitle')">
+        <NAlert
+          :show-icon="true"
+          :title="$t('skills.list.formatTitle')"
+          type="info"
+        >
           <div class="flex flex-col gap-1 text-xs leading-5">
             <span>
-              {{ $t('skills.list.formatFirstPre') }}<b>SKILL.md</b>{{ $t('skills.list.formatFirstPost') }}<code>name</code>{{ $t('skills.list.formatFirstNameHint') }}<code>description</code>{{ $t('skills.list.formatFirstDescHint') }}<code>version</code>{{ $t('skills.list.formatFirstVersionHint') }}
+              {{ $t('skills.list.formatFirstPre') }}<b>SKILL.md</b>{{
+                $t('skills.list.formatFirstPost')
+              }}<code>name</code>{{ $t('skills.list.formatFirstNameHint')
+              }}<code>description</code
+              >{{ $t('skills.list.formatFirstDescHint')
+              }}<code>version</code>{{ $t('skills.list.formatFirstVersionHint') }}
             </span>
             <span>
-              {{ $t('skills.list.formatSecondPre') }}<code>scripts/</code>{{ $t('skills.list.formatSecondScriptsHint') }}<code>references/</code>{{ $t('skills.list.formatSecondRefsHint') }}<code>assets/</code>{{ $t('skills.list.formatSecondAssetsHint') }}
+              {{ $t('skills.list.formatSecondPre') }}<code>scripts/</code>{{
+                $t('skills.list.formatSecondScriptsHint')
+              }}<code>references/</code
+              >{{ $t('skills.list.formatSecondRefsHint')
+              }}<code>assets/</code>{{ $t('skills.list.formatSecondAssetsHint') }}
             </span>
             <span>{{ $t('skills.list.formatThird') }}</span>
             <span>{{ $t('skills.list.formatFourth') }}</span>
@@ -319,15 +412,11 @@ onMounted(loadList);
 
         <NRadioGroup v-model:value="uploadMode">
           <NRadioButton value="zip">
-{{
-            $t('skills.list.zipMode')
-          }}
-</NRadioButton>
+            {{ $t('skills.list.zipMode') }}
+          </NRadioButton>
           <NRadioButton value="folder">
-{{
-            $t('skills.list.folderMode')
-          }}
-</NRadioButton>
+            {{ $t('skills.list.folderMode') }}
+          </NRadioButton>
         </NRadioGroup>
 
         <NUpload
@@ -385,3 +474,14 @@ onMounted(loadList);
     </UploadModal>
   </Page>
 </template>
+
+<style scoped>
+.c-filter-tag.n-tag {
+  padding: 2px 10px;
+}
+
+.c-filter-tag.n-tag :deep(.n-tag__content) {
+  font-size: 11px;
+  font-weight: 500;
+}
+</style>

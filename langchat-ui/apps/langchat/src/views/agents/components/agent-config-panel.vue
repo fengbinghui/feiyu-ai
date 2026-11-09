@@ -61,25 +61,29 @@ function toggleGroup(name: string) {
 
 <template>
   <div class="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-    <section class="rounded-lg border border-border/70 bg-card">
+    <section class="overflow-hidden rounded-xl border border-border/70 bg-card">
       <button
-        class="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60"
+        class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
         type="button"
         @click="toggleGroup('model')"
       >
         <span
-          class="inline-flex items-center gap-2 text-sm font-semibold text-foreground"
+          class="inline-flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground"
         >
-          <BrainCircuit class="size-4 text-primary" />
-          {{ $t('agents.configPanel.modelInfo') }}
+          <span
+            class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"
+          >
+            <BrainCircuit class="size-3.5" />
+          </span>
+          <span class="truncate">{{ $t('agents.configPanel.modelInfo') }}</span>
         </span>
         <ChevronUp
           v-if="isExpanded('model')"
-          class="size-3.5 text-muted-foreground"
+          class="size-3.5 shrink-0 text-muted-foreground"
         />
-        <ChevronDown v-else class="size-3.5 text-muted-foreground" />
+        <ChevronDown v-else class="size-3.5 shrink-0 text-muted-foreground" />
       </button>
-      <div v-if="isExpanded('model')" class="border-t border-border/60 p-2.5">
+      <div v-if="isExpanded('model')" class="border-t border-border/60 p-3">
         <ModelSelector
           :allowed-types="['REASONING', 'CHAT']"
           :config="formModel.modelConfig"
@@ -94,21 +98,25 @@ function toggleGroup(name: string) {
     <!-- 预留插槽:允许使用方在模型分组之后插入同规格的折叠分组 -->
     <slot name="after-model"></slot>
 
-    <section class="rounded-lg border border-border/70 bg-card">
+    <section class="overflow-hidden rounded-xl border border-border/70 bg-card">
       <div
-        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 transition-colors hover:bg-muted/60"
+        class="flex items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50"
       >
         <button
           class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
           type="button"
           @click="toggleGroup('knowledge-relation')"
         >
-          <Database class="size-4 shrink-0 text-primary" />
+          <span
+            class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"
+          >
+            <Database class="size-3.5" />
+          </span>
           <span class="truncate text-sm font-semibold text-foreground">
             {{ $t('agents.configPanel.knowledge.title') }}
           </span>
           <span
-            class="shrink-0 rounded bg-muted px-1.5 text-[11px] leading-[18px] text-muted-foreground"
+            class="shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 text-[10px] font-medium tabular-nums leading-[18px] text-muted-foreground"
           >
             {{ formModel.knowledgeIdsList.length }}
           </span>
@@ -116,7 +124,7 @@ function toggleGroup(name: string) {
         <div class="flex shrink-0 items-center gap-0.5">
           <button
             v-tippy="$t('agents.configPanel.knowledge.add')"
-            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
             type="button"
             @click="knowledgePickerRef?.open()"
           >
@@ -124,7 +132,7 @@ function toggleGroup(name: string) {
             {{ $t('common.actions.add') }}
           </button>
           <button
-            class="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+            class="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             type="button"
             @click="toggleGroup('knowledge-relation')"
           >
@@ -138,7 +146,7 @@ function toggleGroup(name: string) {
       </div>
       <div
         v-if="isExpanded('knowledge-relation')"
-        class="border-t border-border/60 p-2.5"
+        class="border-t border-border/60 p-3"
       >
         <RelationCardPicker
           ref="knowledgePickerRef"
@@ -153,21 +161,25 @@ function toggleGroup(name: string) {
       </div>
     </section>
 
-    <section class="rounded-lg border border-border/70 bg-card">
+    <section class="overflow-hidden rounded-xl border border-border/70 bg-card">
       <div
-        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 transition-colors hover:bg-muted/60"
+        class="flex items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50"
       >
         <button
           class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
           type="button"
           @click="toggleGroup('skill-relation')"
         >
-          <Wrench class="size-4 shrink-0 text-primary" />
+          <span
+            class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"
+          >
+            <Wrench class="size-3.5" />
+          </span>
           <span class="truncate text-sm font-semibold text-foreground">
             {{ $t('agents.configPanel.skills.title') }}
           </span>
           <span
-            class="shrink-0 rounded bg-muted px-1.5 text-[11px] leading-[18px] text-muted-foreground"
+            class="shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 text-[10px] font-medium tabular-nums leading-[18px] text-muted-foreground"
           >
             {{ formModel.skillIdsList.length }}
           </span>
@@ -175,7 +187,7 @@ function toggleGroup(name: string) {
         <div class="flex shrink-0 items-center gap-0.5">
           <button
             v-tippy="$t('agents.configPanel.skills.add')"
-            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
             type="button"
             @click="skillPickerRef?.open()"
           >
@@ -183,7 +195,7 @@ function toggleGroup(name: string) {
             {{ $t('common.actions.add') }}
           </button>
           <button
-            class="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+            class="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             type="button"
             @click="toggleGroup('skill-relation')"
           >
@@ -194,7 +206,7 @@ function toggleGroup(name: string) {
       </div>
       <div
         v-if="isExpanded('skill-relation')"
-        class="border-t border-border/60 p-2.5"
+        class="border-t border-border/60 p-3"
       >
         <RelationCardPicker
           ref="skillPickerRef"
@@ -209,21 +221,25 @@ function toggleGroup(name: string) {
       </div>
     </section>
 
-    <section class="rounded-lg border border-border/70 bg-card">
+    <section class="overflow-hidden rounded-xl border border-border/70 bg-card">
       <div
-        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 transition-colors hover:bg-muted/60"
+        class="flex items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50"
       >
         <button
           class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
           type="button"
           @click="toggleGroup('mcp-relation')"
         >
-          <PlugZap class="size-4 shrink-0 text-primary" />
+          <span
+            class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary"
+          >
+            <PlugZap class="size-3.5" />
+          </span>
           <span class="truncate text-sm font-semibold text-foreground">
             {{ $t('agents.configPanel.mcp.title') }}
           </span>
           <span
-            class="shrink-0 rounded bg-muted px-1.5 text-[11px] leading-[18px] text-muted-foreground"
+            class="shrink-0 rounded-md border border-border/60 bg-muted/40 px-1.5 text-[10px] font-medium tabular-nums leading-[18px] text-muted-foreground"
           >
             {{ formModel.mcpIdsList.length }}
           </span>
@@ -231,7 +247,7 @@ function toggleGroup(name: string) {
         <div class="flex shrink-0 items-center gap-0.5">
           <button
             v-tippy="$t('agents.configPanel.mcp.add')"
-            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
             type="button"
             @click="mcpPickerRef?.open()"
           >
@@ -239,7 +255,7 @@ function toggleGroup(name: string) {
             {{ $t('common.actions.add') }}
           </button>
           <button
-            class="cursor-pointer rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+            class="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             type="button"
             @click="toggleGroup('mcp-relation')"
           >
@@ -250,7 +266,7 @@ function toggleGroup(name: string) {
       </div>
       <div
         v-if="isExpanded('mcp-relation')"
-        class="border-t border-border/60 p-2.5"
+        class="border-t border-border/60 p-3"
       >
         <RelationCardPicker
           ref="mcpPickerRef"

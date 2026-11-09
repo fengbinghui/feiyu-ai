@@ -338,72 +338,93 @@ async function submitCurrentIndex() {
 <template>
   <Page>
     <div class="flex h-full min-h-0 flex-col gap-3">
-      <div
-        class="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 xl:flex-row xl:items-start xl:justify-between"
+      <header
+        class="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3.5 sm:px-5 xl:flex-row xl:items-center xl:justify-between"
       >
         <div class="flex min-w-0 items-start gap-3">
           <NButton
-            secondary
+            v-tippy="$t('common.actions.back')"
+            :aria-label="$t('common.actions.back')"
+            circle
+            quaternary
+            size="small"
             @click="router.push(buildKnowledgeDocsRouteLocation(knowledgeId))"
           >
-            <ArrowLeft class="size-4" />
-            {{ $t('common.actions.back') }}
+            <template #icon>
+              <ArrowLeft class="size-4" />
+            </template>
           </NButton>
+          <div
+            class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/8 text-primary"
+          >
+            <FileText class="size-4.5" />
+          </div>
           <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <FileText class="size-5 text-primary" />
-              <div class="truncate text-lg font-semibold text-foreground">
-                {{ selectedDoc?.name || $t('docs.title.preview') }}
-              </div>
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <NTag :bordered="false" round size="small">
+            <h1
+              class="truncate text-xl font-semibold tracking-tight text-foreground"
+            >
+              {{ selectedDoc?.name || $t('docs.title.preview') }}
+            </h1>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] leading-4"
+              >
                 <span class="text-muted-foreground">
                   {{ $t('docs.preview.tagCreateTime') }}
                 </span>
-                <span class="ml-1 font-medium tabular-nums text-foreground">
+                <span class="font-medium tabular-nums text-foreground">
                   {{ formatDocsTimestamp(selectedDoc?.createTime) }}
                 </span>
-              </NTag>
-              <NTag :bordered="false" round size="small">
+              </span>
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] leading-4"
+              >
                 <span class="text-muted-foreground">
                   {{ $t('docs.preview.tagSegmentCount') }}
                 </span>
-                <span class="ml-1 font-medium tabular-nums text-foreground">
+                <span class="font-medium tabular-nums text-foreground">
                   {{ segmentCount }}
                 </span>
-              </NTag>
-              <NTag :bordered="false" round size="small">
+              </span>
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] leading-4"
+              >
                 <span class="text-muted-foreground">
                   {{ $t('docs.preview.tagCharCount') }}
                 </span>
-                <span class="ml-1 font-medium tabular-nums text-foreground">
+                <span class="font-medium tabular-nums text-foreground">
                   {{ formatDocsCharCount(charCount) }}
                 </span>
-              </NTag>
-              <NTag :bordered="false" round size="small" type="info">
-                <span class="text-muted-foreground">
+              </span>
+              <span
+                class="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] leading-4"
+              >
+                <span class="text-primary/70">
                   {{ $t('docs.preview.tagParseMode') }}
                 </span>
-                <span class="ml-1 font-medium text-foreground">
+                <span class="font-medium text-primary">
                   {{ parseModeLabel }}
                 </span>
-              </NTag>
+              </span>
             </div>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
           <NButton secondary @click="loadSegments">
-            <RefreshCcw class="size-4" />
+            <template #icon>
+              <RefreshCcw class="size-4" />
+            </template>
             {{ $t('docs.actions.refreshPreview') }}
           </NButton>
           <NButton type="primary" @click="submitCurrentIndex">
-            <RotateCcw class="size-4" />
+            <template #icon>
+              <RotateCcw class="size-4" />
+            </template>
             {{ $t('docs.actions.reVectorize') }}
           </NButton>
         </div>
-      </div>
+      </header>
 
       <div
         class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_300px] xl:grid-rows-[minmax(0,1fr)]"
@@ -478,11 +499,11 @@ async function submitCurrentIndex() {
               <div
                 v-for="(segment, index) in segments"
                 :key="segmentKey(segment)"
-                class="cursor-pointer rounded-lg border bg-card p-3 transition-all hover:border-primary/50 hover:bg-primary/5"
+                class="cursor-pointer rounded-xl border bg-card p-3 transition-colors hover:border-primary/40 hover:bg-primary/[0.03]"
                 :class="[
                   isExpanded(segment)
-                    ? 'border-primary/60 bg-primary/5'
-                    : 'border-border',
+                    ? 'border-primary/45 bg-primary/[0.04] shadow-sm'
+                    : 'border-border/80',
                   isDisabled(segment) ? 'opacity-70' : '',
                 ]"
                 @click="toggleSegment(segment)"
@@ -497,25 +518,26 @@ async function submitCurrentIndex() {
 
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
-                      <NTag :bordered="false" round size="small" type="info">
+                      <span
+                        class="inline-flex h-[18px] items-center rounded-[5px] border border-primary/20 bg-primary/8 px-1.5 text-[10px] font-semibold tabular-nums leading-none text-primary"
+                      >
                         {{ $t('docs.preview.segment', { index: index + 1 }) }}
-                      </NTag>
-                      <span class="text-xs text-muted-foreground tabular-nums">
+                      </span>
+                      <span
+                        class="text-[11px] tabular-nums text-muted-foreground"
+                      >
                         {{
                           $t('docs.preview.charCount', {
                             count: segment.content?.length ?? 0,
                           })
                         }}
                       </span>
-                      <NTag
+                      <span
                         v-if="isDisabled(segment)"
-                        :bordered="false"
-                        round
-                        size="small"
-                        type="warning"
+                        class="inline-flex h-[18px] items-center rounded-[5px] border border-warning/30 bg-warning/10 px-1.5 text-[10px] font-medium leading-none text-warning"
                       >
                         {{ $t('docs.preview.disabled') }}
-                      </NTag>
+                      </span>
                     </div>
 
                     <div v-if="isEditing(segment)" class="mt-3 space-y-2" @click.stop>
@@ -603,164 +625,167 @@ async function submitCurrentIndex() {
           </div>
         </section>
 
-        <aside
-          class="min-h-0 overflow-y-auto rounded-lg border border-border bg-card"
-        >
-          <div class="divide-y divide-border">
-            <div class="p-4">
-              <div
-                class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-              >
+        <aside class="flex min-h-0 flex-col gap-3 overflow-y-auto">
+          <section class="rounded-xl border border-border bg-card p-4">
+            <div class="flex items-center gap-2">
+              <span class="h-3 w-0.5 rounded-full bg-primary"></span>
+              <h2 class="text-xs font-semibold text-foreground">
                 {{ $t('docs.preview.metadata') }}
-              </div>
-              <div class="mt-3 space-y-3 text-xs leading-6">
-                <div>
-                  <div class="text-muted-foreground">
-                    {{ $t('docs.search.knowledgeName') }}
-                  </div>
-                  <div class="mt-1">
-                    <NTag :bordered="false" round size="small" type="info">
-                      {{ knowledgeLabel }}
-                    </NTag>
-                  </div>
-                </div>
-                <div>
-                  <div class="text-muted-foreground">
-                    {{ $t('docs.search.docName') }}
-                  </div>
-                  <div class="mt-1 break-all font-medium text-foreground">
-                    {{ selectedDoc?.name || '--' }}
-                  </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <NTag :bordered="false" round size="small">
-                    {{
-                      $t('docs.search.ext', { ext: selectedDoc?.ext || '--' })
-                    }}
-                  </NTag>
-                  <NTag :bordered="false" round size="small">
-                    {{
-                      $t('docs.search.size', {
-                        size: formatDocsFileSize(selectedDoc?.size),
-                      })
-                    }}
-                  </NTag>
-                </div>
-                <div class="space-y-1 text-muted-foreground">
-                  <div class="break-all">
-                    {{ $t('docs.labels.docId') }}: {{ selectedDoc?.id || '--' }}
-                  </div>
-                  <div>
-                    {{
-                      $t('docs.search.updateTime', {
-                        time: formatDocsTimestamp(selectedDoc?.updateTime),
-                      })
-                    }}
-                  </div>
-                </div>
-              </div>
+              </h2>
             </div>
-
-            <div class="p-4">
-              <div
-                class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-              >
-                {{ $t('docs.preview.parserInfo') }}
-              </div>
-              <div class="mt-3 space-y-3 text-xs leading-6">
-                <div>
-                  <div class="text-muted-foreground">
-                    {{ $t('docs.upload.parserMode') }}
-                  </div>
-                  <div class="mt-1">
-                    <NTag :bordered="false" round size="small" type="info">
-                      {{ parseModeLabel }}
-                    </NTag>
-                  </div>
+            <div class="mt-3 space-y-3 text-xs leading-6">
+              <div>
+                <div class="text-muted-foreground">
+                  {{ $t('docs.search.knowledgeName') }}
                 </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-muted-foreground">
-                    {{ $t('docs.upload.chunkSize') }}
-                  </span>
-                  <span class="font-medium tabular-nums text-foreground">
-                    {{
-                      segmentConfig.chunkSize ?? $t('docs.list.segmentDefault')
-                    }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-muted-foreground">
-                    {{ $t('docs.upload.overlapSize') }}
-                  </span>
-                  <span class="font-medium tabular-nums text-foreground">
-                    {{
-                      segmentConfig.overlapSize ?? $t('docs.list.segmentDefault')
-                    }}
+                <div class="mt-1">
+                  <span
+                    class="inline-flex items-center rounded-md border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary"
+                  >
+                    {{ knowledgeLabel }}
                   </span>
                 </div>
               </div>
-            </div>
-
-            <div class="p-4">
-              <div
-                class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
-              >
-                {{ $t('docs.preview.vectorStatus') }}
+              <div>
+                <div class="text-muted-foreground">
+                  {{ $t('docs.search.docName') }}
+                </div>
+                <div class="mt-1 break-all font-medium text-foreground">
+                  {{ selectedDoc?.name || '--' }}
+                </div>
               </div>
-              <div class="mt-3 flex items-center gap-2">
-                <NTag
-                  :bordered="false"
-                  :type="
-                    resolveDocsStatusType(statusDetail?.embedStatus) as any
-                  "
-                  round
-                  size="small"
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span
+                  class="inline-flex items-center rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
                 >
-                  {{ resolveDocsStatusLabel(statusDetail?.embedStatus) }}
-                </NTag>
+                  {{
+                    $t('docs.search.ext', { ext: selectedDoc?.ext || '--' })
+                  }}
+                </span>
+                <span
+                  class="inline-flex items-center rounded-md border border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
+                >
+                  {{
+                    $t('docs.search.size', {
+                      size: formatDocsFileSize(selectedDoc?.size),
+                    })
+                  }}
+                </span>
               </div>
-              <div
-                class="mt-3 space-y-1.5 text-xs leading-6 text-muted-foreground"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <span>{{ $t('docs.preview.tagSegmentCount') }}</span>
-                  <span class="tabular-nums text-foreground">
-                    {{ statusDetail?.segmentCount ?? segmentCount }}
-                  </span>
+              <div class="space-y-1 border-t border-border/60 pt-2.5 text-muted-foreground">
+                <div class="break-all">
+                  {{ $t('docs.labels.docId') }}: {{ selectedDoc?.id || '--' }}
                 </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span>{{ $t('docs.preview.tagCharCount') }}</span>
-                  <span class="tabular-nums text-foreground">
-                    {{ formatDocsCharCount(statusDetail?.charCount ?? charCount) }}
-                  </span>
+                <div>
+                  {{
+                    $t('docs.search.updateTime', {
+                      time: formatDocsTimestamp(selectedDoc?.updateTime),
+                    })
+                  }}
                 </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span>{{ $t('docs.preview.startTime') }}</span>
-                  <span class="tabular-nums text-foreground">
-                    {{ formatDocsTimestamp(statusDetail?.embedStartTime) }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span>{{ $t('docs.preview.endTime') }}</span>
-                  <span class="tabular-nums text-foreground">
-                    {{ formatDocsTimestamp(statusDetail?.embedEndTime) }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between gap-3">
-                  <span>{{ $t('docs.preview.duration') }}</span>
-                  <span class="tabular-nums text-foreground">
-                    {{ formatDocsDuration(statusDetail?.costMs) }}
-                  </span>
-                </div>
-              </div>
-              <div
-                v-if="statusDetail?.embedError"
-                class="mt-3 rounded-xl border border-dashed border-border px-3 py-2 text-xs leading-6 text-destructive"
-              >
-                {{ statusDetail.embedError }}
               </div>
             </div>
-          </div>
+          </section>
+
+          <section class="rounded-xl border border-border bg-card p-4">
+            <div class="flex items-center gap-2">
+              <span class="h-3 w-0.5 rounded-full bg-primary"></span>
+              <h2 class="text-xs font-semibold text-foreground">
+                {{ $t('docs.preview.parserInfo') }}
+              </h2>
+            </div>
+            <div class="mt-3 space-y-3 text-xs leading-6">
+              <div>
+                <div class="text-muted-foreground">
+                  {{ $t('docs.upload.parserMode') }}
+                </div>
+                <div class="mt-1">
+                  <span
+                    class="inline-flex items-center rounded-md border border-primary/20 bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary"
+                  >
+                    {{ parseModeLabel }}
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-muted-foreground">
+                  {{ $t('docs.upload.chunkSize') }}
+                </span>
+                <span class="font-medium tabular-nums text-foreground">
+                  {{
+                    segmentConfig.chunkSize ?? $t('docs.list.segmentDefault')
+                  }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-muted-foreground">
+                  {{ $t('docs.upload.overlapSize') }}
+                </span>
+                <span class="font-medium tabular-nums text-foreground">
+                  {{
+                    segmentConfig.overlapSize ?? $t('docs.list.segmentDefault')
+                  }}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-xl border border-border bg-card p-4">
+            <div class="flex items-center gap-2">
+              <span class="h-3 w-0.5 rounded-full bg-primary"></span>
+              <h2 class="text-xs font-semibold text-foreground">
+                {{ $t('docs.preview.vectorStatus') }}
+              </h2>
+            </div>
+            <div class="mt-3 flex items-center gap-2">
+              <NTag
+                :bordered="false"
+                :type="resolveDocsStatusType(statusDetail?.embedStatus) as any"
+                round
+                size="small"
+              >
+                {{ resolveDocsStatusLabel(statusDetail?.embedStatus) }}
+              </NTag>
+            </div>
+            <div class="mt-3 space-y-1.5 text-xs leading-6 text-muted-foreground">
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ $t('docs.preview.tagSegmentCount') }}</span>
+                <span class="tabular-nums text-foreground">
+                  {{ statusDetail?.segmentCount ?? segmentCount }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ $t('docs.preview.tagCharCount') }}</span>
+                <span class="tabular-nums text-foreground">
+                  {{ formatDocsCharCount(statusDetail?.charCount ?? charCount) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ $t('docs.preview.startTime') }}</span>
+                <span class="tabular-nums text-foreground">
+                  {{ formatDocsTimestamp(statusDetail?.embedStartTime) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ $t('docs.preview.endTime') }}</span>
+                <span class="tabular-nums text-foreground">
+                  {{ formatDocsTimestamp(statusDetail?.embedEndTime) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span>{{ $t('docs.preview.duration') }}</span>
+                <span class="tabular-nums text-foreground">
+                  {{ formatDocsDuration(statusDetail?.costMs) }}
+                </span>
+              </div>
+            </div>
+            <div
+              v-if="statusDetail?.embedError"
+              class="mt-3 rounded-lg border border-dashed border-destructive/40 bg-destructive/5 px-3 py-2 text-xs leading-6 text-destructive"
+            >
+              {{ statusDetail.embedError }}
+            </div>
+          </section>
         </aside>
       </div>
     </div>

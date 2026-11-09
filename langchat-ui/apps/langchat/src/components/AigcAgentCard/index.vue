@@ -119,7 +119,7 @@ const statusType = computed(() =>
   <LcCard
     :icon="agentIcon"
     :meta-items="metaItems"
-    class="h-full cursor-pointer"
+    class="lc-card-lift h-full cursor-pointer"
     hoverable
     @click="emit('click', item)"
   >

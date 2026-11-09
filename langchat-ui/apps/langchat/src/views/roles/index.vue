@@ -6,7 +6,7 @@ import type { AigcRole, AigcRoleMenu } from '#/api/auth/role';
 import { computed, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
-import { SquarePen, Trash2 } from '@vben/icons';
+import { Plus, RefreshCcw, Search } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { NButton, NInput, NTag } from 'naive-ui';
@@ -125,13 +125,13 @@ const gridColumns = computed<VxeGridPropTypes.Columns<AigcRole>>(() => [
   {
     field: 'description',
     title: $t('roles.columns.description'),
-    minWidth: 220,
+    minWidth: 200,
     showOverflow: true,
   },
   {
     field: 'menuIds',
     title: $t('roles.columns.menuAuth'),
-    minWidth: 320,
+    minWidth: 280,
     showOverflow: false,
     slots: { default: 'menuColumn' },
   },
@@ -148,8 +148,7 @@ const gridColumns = computed<VxeGridPropTypes.Columns<AigcRole>>(() => [
     fixed: 'right',
     slots: { default: 'actionColumn' },
     title: $t('common.labels.actions'),
-    showOverflow: true,
-    width: 110,
+    width: 150,
   },
 ]);
 
@@ -168,26 +167,13 @@ const [Grid, gridApi] = useVbenVxeGrid<AigcRole>({
         query: queryRoles,
       },
     },
-    toolbarConfig: {
-      refresh: true,
-      zoom: true,
-    },
   },
-  tableTitle: $t('roles.list.tableTitle'),
 });
 
 watch(
   gridColumns,
   (columns) => {
     gridApi.setGridOptions({ columns });
-  },
-  { immediate: true },
-);
-
-watch(
-  () => $t('roles.list.tableTitle'),
-  (value) => {
-    gridApi.setState({ tableTitle: value });
   },
   { immediate: true },
 );
@@ -287,37 +273,53 @@ async function syncRoleMenus(roleId: string, nextMenuIds: string[]) {
 
 <template>
   <Page>
-    <ManageCard>
+    <ManageCard
+      :description="$t('roles.list.description')"
+      :title="$t('roles.list.tableTitle')"
+    >
+      <template #actions>
+        <NButton secondary @click="() => gridApi.reload()">
+          <template #icon>
+            <RefreshCcw class="size-4" />
+          </template>
+          {{ $t('common.actions.refresh') }}
+        </NButton>
+        <NButton type="primary" @click="openCreate">
+          <template #icon>
+            <Plus class="size-4" />
+          </template>
+          {{ $t('roles.actions.create') }}
+        </NButton>
+      </template>
+
       <template #search>
         <div class="flex items-center gap-2">
-          <span class="shrink-0 text-sm text-muted-foreground">{{
-            $t('common.labels.keyword')
-          }}</span>
+          <span
+            class="shrink-0 text-xs font-medium text-muted-foreground"
+          >{{ $t('common.labels.keyword') }}</span>
           <NInput
             v-model:value="draftKeyword"
+            class="lc-filter-input w-[280px]"
             clearable
             :placeholder="$t('roles.list.keywordPlaceholder')"
-            style="width: 240px"
             @keyup.enter="handleSearch"
-          />
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
         </div>
         <div class="ml-auto flex items-center gap-2">
-          <NButton @click="handleReset">{{ $t('common.actions.reset') }}</NButton>
+          <NButton secondary @click="handleReset">
+            {{ $t('common.actions.reset') }}
+          </NButton>
           <NButton type="primary" @click="handleSearch">
-{{
-            $t('common.actions.search')
-          }}
-</NButton>
+            {{ $t('common.actions.search') }}
+          </NButton>
         </div>
       </template>
 
-      <Grid class="min-h-0 flex-1" grid-class="px-4 pb-4 pt-3">
-        <template #toolbar-tools>
-          <NButton type="primary" @click="openCreate">
-            {{ $t('roles.actions.create') }}
-          </NButton>
-        </template>
-
+      <Grid class="min-h-0 flex-1" grid-class="px-3 pb-3 pt-2">
         <template #menuColumn="{ row }">
           <div
             v-if="resolveMenuLabels(row.id).length > 0"
@@ -340,7 +342,7 @@ async function syncRoleMenus(roleId: string, nextMenuIds: string[]) {
         </template>
 
         <template #actionColumn="{ row }">
-          <div class="flex items-center justify-center gap-1">
+          <div class="lc-row-actions">
             <NButton
               v-tippy="
                 isBuiltinRole(row)
@@ -348,16 +350,14 @@ async function syncRoleMenus(roleId: string, nextMenuIds: string[]) {
                   : $t('roles.list.editRole')
               "
               :disabled="isBuiltinRole(row)"
-              circle
-              quaternary
               size="small"
+              text
               type="primary"
               @click="openEdit(row)"
             >
-              <template #icon>
-                <SquarePen class="size-4" />
-              </template>
+              {{ $t('common.actions.edit') }}
             </NButton>
+            <span class="h-3 w-px bg-border"></span>
             <NButton
               v-tippy="
                 isBuiltinRole(row)
@@ -365,15 +365,12 @@ async function syncRoleMenus(roleId: string, nextMenuIds: string[]) {
                   : $t('roles.list.deleteRole')
               "
               :disabled="isBuiltinRole(row)"
-              circle
-              quaternary
               size="small"
+              text
               type="error"
               @click="handleDelete(row)"
             >
-              <template #icon>
-                <Trash2 class="size-4" />
-              </template>
+              {{ $t('common.actions.delete') }}
             </NButton>
           </div>
         </template>

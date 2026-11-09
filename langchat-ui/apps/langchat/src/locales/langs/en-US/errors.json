@@ -1,3 +1,6 @@
 {
-  "unknown": "Unknown error"
+  "unknown": "Unknown error",
+  "http": {
+    "forbidden": "You do not have permission to perform this action. Please contact your administrator."
+  }
 }

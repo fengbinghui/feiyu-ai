@@ -4,6 +4,7 @@
 import type { RequestClientOptions } from '@vben/request';
 
 import { useAppConfig } from '@vben/hooks';
+import { $t } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 import {
   authenticateResponseInterceptor,
@@ -131,6 +132,11 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
       // 这里可以根据业务进行定制，根据不同业务码返回更细粒度的提示信息。
       const responseData = error?.response?.data ?? {};
       const errorMessage = responseData?.error ?? responseData?.message ?? '';
+      // 403：统一提示为更明确的无权限文案，指引用户联系管理员
+      if (error?.response?.status === 403) {
+        message.error(errorMessage || $t('errors.http.forbidden'));
+        return;
+      }
       // 如果没有错误信息，则会根据状态码进行提示
       message.error(errorMessage || msg);
     }),

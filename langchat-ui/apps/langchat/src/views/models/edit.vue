@@ -6,6 +6,10 @@ import { useVbenDrawer } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
 import { type VbenFormSchema, useVbenForm } from '#/adapter/form';
+import {
+  formGroupDivider,
+  stripFormGroupFields,
+} from '#/views/shared/forms';
 import { vectorDimensionOptions } from '#/views/shared/aigc/options';
 import {
   getModelProviderOptions,
@@ -259,54 +263,72 @@ async function handleFormValuesChange(values: Record<string, any>) {
   }
 }
 
-const formSchema = computed<VbenFormSchema[]>(() => [
-  {
-    component: 'Input',
-    fieldName: 'name',
-    label: $t('models.form.alias'),
-    rules: 'required',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: providerOptions.value,
+const formSchema = computed<VbenFormSchema[]>(() => {
+  const connectionFields = connectionFieldSchema.value;
+  const tailFields = tailConfigFieldSchema.value;
+  return [
+    formGroupDivider('basic', $t('models.form.groups.basic')),
+    {
+      component: 'Input',
+      fieldName: 'name',
+      label: $t('models.form.alias'),
+      rules: 'required',
     },
-    fieldName: 'provider',
-    label: $t('models.form.provider'),
-    rules: 'selectRequired',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      options: typeOptions.value,
+    {
+      component: 'Select',
+      componentProps: {
+        options: providerOptions.value,
+      },
+      fieldName: 'provider',
+      label: $t('models.form.provider'),
+      rules: 'selectRequired',
     },
-    fieldName: 'type',
-    label: $t('models.form.type'),
-    rules: 'selectRequired',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      clearable: true,
-      filterable: true,
-      options: presetModelOptions.value,
-      placeholder: $t('models.form.modelSelectPlaceholder'),
-      tag: true,
+    {
+      component: 'Select',
+      componentProps: {
+        options: typeOptions.value,
+      },
+      fieldName: 'type',
+      label: $t('models.form.type'),
+      rules: 'selectRequired',
     },
-    fieldName: 'model',
-    label: $t('models.form.name'),
-    rules: 'required',
-  },
-  ...connectionFieldSchema.value,
-  ...tailConfigFieldSchema.value,
-]);
+    {
+      component: 'Select',
+      componentProps: {
+        clearable: true,
+        filterable: true,
+        options: presetModelOptions.value,
+        placeholder: $t('models.form.modelSelectPlaceholder'),
+        tag: true,
+      },
+      fieldName: 'model',
+      label: $t('models.form.name'),
+      rules: 'required',
+    },
+    ...(connectionFields.length > 0
+      ? [
+          formGroupDivider(
+            'connection',
+            $t('models.form.groups.connection'),
+          ),
+          ...connectionFields,
+        ]
+      : []),
+    ...(tailFields.length > 0
+      ? [
+          formGroupDivider('params', $t('models.form.groups.params')),
+          ...tailFields,
+        ]
+      : []),
+  ];
+});
 
 const [Form, formApi] = useVbenForm({
   handleValuesChange: handleFormValuesChange,
   layout: 'vertical',
   schema: formSchema.value,
   showDefaultActions: false,
-  wrapperClass: 'grid-cols-1 gap-x-4 px-3 sm:grid-cols-2',
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4 px-1 pb-1 sm:grid-cols-2',
 });
 
 watch(
@@ -329,7 +351,9 @@ async function handleSave() {
   if (!values) {
     return;
   }
-  const payload = { ...(values as Record<string, any>) };
+  const payload = stripFormGroupFields({
+    ...(values as Record<string, any>),
+  });
   const activeConfigFieldSet = new Set(configFieldNames.value);
   for (const fieldName of ALL_CONFIG_FIELD_NAMES) {
     if (!activeConfigFieldSet.has(fieldName)) {

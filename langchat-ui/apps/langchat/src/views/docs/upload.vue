@@ -7,10 +7,10 @@ import {computed, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 
 import {Page} from '@vben/common-ui';
-import {Upload} from '@vben/icons';
+import {ArrowLeft, ArrowRight, Check, FileUp, Files, Upload} from '@vben/icons';
 import {$t} from '@vben/locales';
 
-import {NButton, NInput, NInputNumber, NSelect, NStep, NSteps, NSwitch, NTag,} from 'naive-ui';
+import {NButton, NInput, NInputNumber, NSelect, NSwitch} from 'naive-ui';
 
 import {message} from '#/adapter/naive';
 import {indexKnowledgeApi, uploadDocsApi} from '#/api/aigc/docs';
@@ -122,6 +122,22 @@ const stepDescription = computed(() => {
     }
   }
 });
+
+/** 顶部步骤条数据（视觉层，不参与流程控制） */
+const stepItems = computed(() => [
+  {
+    description: $t('docs.upload.stepUploadDescription'),
+    title: $t('docs.upload.stepUpload'),
+  },
+  {
+    description: $t('docs.upload.stepSegmentDescription'),
+    title: $t('docs.upload.stepSegment'),
+  },
+  {
+    description: $t('docs.upload.stepExecuteDescription'),
+    title: $t('docs.upload.stepExecute'),
+  },
+]);
 
 watch(
   routeKnowledgeId,
@@ -364,547 +380,710 @@ function buildUid(sourceKey: string) {
       @change="handleNativeFileChange"
     />
 
-    <div class="rounded-lg border border-border bg-card p-4">
-      <div
-        class="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between"
-      >
-        <div class="min-w-0">
-          <div class="text-lg font-semibold text-foreground">
-            {{ $t('docs.title.upload') }}
-          </div>
-          <div class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-            {{ stepDescription }}
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <NButton
-            secondary
-            @click="
-              router.push(
-                buildKnowledgeDocsRouteLocation(uploadForm.knowledgeId),
-              )
-            "
-          >
-            {{ $t('docs.actions.backToList') }}
-          </NButton>
-          <NButton secondary @click="openFileDialog">
-            <Upload class="size-4" />
-            {{ $t('docs.upload.addMore') }}
-          </NButton>
-        </div>
-      </div>
-
-      <div class="mt-4 border-t border-border pt-4">
-        <NSteps :current="currentStep">
-          <NStep
-            :description="$t('docs.upload.stepUploadDescription')"
-            :title="$t('docs.upload.stepUpload')"
-          />
-          <NStep
-            :description="$t('docs.upload.stepSegmentDescription')"
-            :title="$t('docs.upload.stepSegment')"
-          />
-          <NStep
-            :description="$t('docs.upload.stepExecuteDescription')"
-            :title="$t('docs.upload.stepExecute')"
-          />
-        </NSteps>
-      </div>
-
-      <div
-        v-if="currentStep === 1"
-        class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]"
-      >
-        <div class="flex min-w-0 flex-col gap-3">
-          <div
-            :class="[
-              dragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-muted/30 hover:border-primary/50',
-            ]" class="flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center transition-colors"
-            @click="openFileDialog"
-            @drop="handleDrop"
-            @dragenter.prevent="dragActive = true"
-            @dragleave.prevent="dragActive = false"
-            @dragover.prevent
-          >
-            <div class="text-lg font-semibold text-foreground">
-              {{ $t('docs.upload.dragHere') }}
-            </div>
-            <div class="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-              {{ $t('docs.upload.supportedFormats') }}
-              {{ $t('docs.upload.supportedFormatsSuffix') }}
-            </div>
-            <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <NTag :bordered="false" round type="info">
-                {{ $t('docs.upload.selectedCount', { count: queueItems.length }) }}
-              </NTag>
-              <NTag :bordered="false" round type="success">
-                {{
-                  $t('docs.upload.totalSize', {
-                    size: formatDocsFileSize(totalSize),
-                  })
-                }}
-              </NTag>
-            </div>
-          </div>
-
-          <div
-            class="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground"
-          >
-            <div class="mb-1 text-xs font-semibold text-foreground">
-              {{ $t('docs.upload.guideTitle') }}
-            </div>
-            <div>{{ $t('docs.upload.guideFirst') }}</div>
-            <div>{{ $t('docs.upload.guideSecond') }}</div>
-            <div>{{ $t('docs.upload.guideThird') }}</div>
-          </div>
-        </div>
-
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-foreground">
-            {{ $t('docs.upload.queueTitle') }}
-          </div>
-          <div class="mt-1 text-xs text-muted-foreground">
-            {{ $t('docs.upload.queueDescription', { count: queueItems.length }) }}
-          </div>
-
-          <div v-if="queueItems.length > 0" class="mt-3 space-y-3">
-            <div
-              v-for="item in queueItems"
-              :key="item.uid"
-              class="rounded-lg border border-border bg-muted/30 p-3"
+    <div class="flex h-full min-h-0 flex-col gap-3">
+      <!-- 页头 -->
+      <section class="rounded-xl border border-border bg-card px-4 py-3.5 sm:px-5">
+        <div
+          class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+        >
+          <div class="flex min-w-0 items-start gap-3">
+            <span
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/8 text-primary"
             >
+              <Upload class="size-4.5" />
+            </span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-xl font-semibold tracking-tight text-foreground">
+                  {{ $t('docs.title.upload') }}
+                </h1>
+                <span
+                  class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
+                >
+                  {{
+                    $t('docs.upload.stepIndicator', {
+                      current: currentStep,
+                      total: 3,
+                    })
+                  }}
+                </span>
+              </div>
+              <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+                {{ stepDescription }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <NButton
+              secondary
+              @click="
+                router.push(
+                  buildKnowledgeDocsRouteLocation(uploadForm.knowledgeId),
+                )
+              "
+            >
+              <template #icon>
+                <ArrowLeft class="size-4" />
+              </template>
+              {{ $t('docs.actions.backToList') }}
+            </NButton>
+            <NButton secondary @click="openFileDialog">
+              <template #icon>
+                <Upload class="size-4" />
+              </template>
+              {{ $t('docs.upload.addMore') }}
+            </NButton>
+          </div>
+        </div>
+      </section>
+
+      <!-- 主卡片：步骤条 + 内容 + 底部操作条 -->
+      <div
+        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card"
+      >
+        <!-- 步骤条 -->
+        <div class="shrink-0 border-b border-border/70 px-3 py-3 sm:px-4">
+          <ol class="grid gap-2 sm:grid-cols-3">
+            <li v-for="(step, index) in stepItems" :key="step.title">
               <div
-                class="grid gap-3 md:grid-cols-[minmax(0,1fr)_92px_92px] md:items-center"
+                :class="
+                  currentStep > index + 1
+                    ? 'border-primary/25 bg-primary/5'
+                    : currentStep === index + 1
+                      ? 'border-primary/40 bg-primary/[0.07] shadow-sm'
+                      : 'border-border/70 bg-muted/20'
+                "
+                class="flex h-full items-start gap-2.5 rounded-lg border px-3 py-2.5 transition-colors"
               >
-                <NInput
-                  v-model:value="item.name"
-                  :placeholder="$t('docs.upload.namePlaceholder')"
-                />
-                <div
-                  class="flex h-8 items-center rounded-lg border border-border bg-card px-2 text-xs text-muted-foreground"
+                <span
+                  :class="
+                    currentStep > index + 1
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : currentStep === index + 1
+                        ? 'border-primary/50 bg-card text-primary'
+                        : 'border-border bg-card text-muted-foreground'
+                  "
+                  class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums"
                 >
-                  {{ item.type }}
-                </div>
-                <div
-                  class="flex h-8 items-center rounded-lg border border-border bg-card px-2 text-xs text-muted-foreground"
-                >
-                  {{ formatDocsFileSize(item.file.size) }}
+                  <Check v-if="currentStep > index + 1" class="size-3.5" />
+                  <template v-else>{{ index + 1 }}</template>
+                </span>
+                <div class="min-w-0">
+                  <div
+                    :class="
+                      currentStep >= index + 1
+                        ? 'text-foreground'
+                        : 'text-muted-foreground'
+                    "
+                    class="text-xs font-semibold"
+                  >
+                    {{ step.title }}
+                  </div>
+                  <div class="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                    {{ step.description }}
+                  </div>
                 </div>
               </div>
+            </li>
+          </ol>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="min-h-0 flex-1 overflow-y-auto px-3 py-3.5 sm:px-4">
+          <!-- 第 1 步：整理上传队列 -->
+          <div
+            v-if="currentStep === 1"
+            class="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
+          >
+            <div class="flex min-w-0 flex-col gap-3">
               <div
-                class="mt-2 flex items-center justify-between gap-2 whitespace-nowrap"
+                :class="
+                  dragActive
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/20 hover:border-primary/50 hover:bg-primary/[0.03]'
+                "
+                class="flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition-colors"
+                @click="openFileDialog"
+                @drop="handleDrop"
+                @dragenter.prevent="dragActive = true"
+                @dragleave.prevent="dragActive = false"
+                @dragover.prevent
               >
-                <div class="min-w-0 truncate text-xs text-muted-foreground">
-                  {{ item.file.name }}
+                <div
+                  class="flex size-14 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 text-primary"
+                >
+                  <FileUp class="size-6" />
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
-                  <NTag
-                    :bordered="false"
-                    :type="
-                      item.status === 'failed'
-                        ? 'error'
-                        : item.status === 'uploaded'
-                          ? 'success'
-                          : 'default'
-                    "
-                    round
-                    size="small"
+                <div class="mt-4 text-base font-semibold text-foreground">
+                  {{ $t('docs.upload.dragHere') }}
+                </div>
+                <div
+                  class="mt-1.5 max-w-lg text-sm leading-6 text-muted-foreground"
+                >
+                  {{ $t('docs.upload.supportedFormats') }}
+                  {{ $t('docs.upload.supportedFormatsSuffix') }}
+                </div>
+                <div
+                  class="mt-4 flex flex-wrap items-center justify-center gap-2"
+                >
+                  <span
+                    class="rounded-md border border-border/70 bg-card px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
                   >
                     {{
-                      item.status === 'uploaded'
-                        ? $t('docs.upload.statusUploaded')
-                        : item.status === 'uploading'
-                          ? $t('docs.upload.statusUploading')
-                          : item.status === 'failed'
-                            ? $t('docs.upload.statusFailed')
-                            : $t('docs.upload.statusPending')
+                      $t('docs.upload.selectedCount', {
+                        count: queueItems.length,
+                      })
                     }}
-                  </NTag>
-                  <NButton
-                    quaternary
-                    size="tiny"
-                    type="error"
-                    @click="removeQueueItem(item.uid)"
+                  </span>
+                  <span
+                    class="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary"
                   >
-                    {{ $t('docs.upload.remove') }}
-                  </NButton>
+                    {{
+                      $t('docs.upload.totalSize', {
+                        size: formatDocsFileSize(totalSize),
+                      })
+                    }}
+                  </span>
                 </div>
               </div>
-              <div v-if="item.error" class="mt-1 text-xs text-destructive">
-                {{ item.error }}
-              </div>
-            </div>
-          </div>
 
-          <div
-            v-else
-            class="mt-3 rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground"
-          >
-            {{ $t('docs.upload.queueEmpty') }}
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="currentStep === 2"
-        class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_320px]"
-      >
-        <div class="grid gap-4 md:grid-cols-2">
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.knowledge') }}
-              </div>
-              <NSelect
-                v-model:value="uploadForm.knowledgeId"
-                :options="knowledgeOptions"
-                :placeholder="$t('docs.upload.knowledgePlaceholder')"
-              />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.typeOverride') }}
-              </div>
-              <NSelect
-                v-model:value="uploadForm.type"
-                :options="typeOptions"
-                :placeholder="$t('docs.upload.typePlaceholder')"
-              />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.parserMode') }}
-              </div>
-              <NSelect
-                v-model:value="uploadForm.parseMode"
-                :options="parseModeOptions"
-                :placeholder="$t('docs.upload.parserPlaceholder')"
-              />
-              <div class="mt-1.5 text-xs text-muted-foreground">
-                {{
-                  currentParseModeDescription
-                }}
-              </div>
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.chunkSize') }}
-              </div>
-              <NInputNumber
-                v-model:value="uploadForm.chunkSize"
-                :min="100"
-                :step="50"
-                class="w-full"
-              />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.overlapSize') }}
-              </div>
-              <NInputNumber
-                v-model:value="uploadForm.overlapSize"
-                :min="0"
-                :step="20"
-                class="w-full"
-              />
-            </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.autoVectorize') }}
-              </div>
               <div
-                class="flex h-10 items-center rounded-xl border border-border bg-muted/20 px-3"
+                class="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
               >
-                <NSwitch v-model:value="uploadForm.autoIndex" />
-                <span class="ml-3 text-sm text-muted-foreground">
-                  {{
-                    uploadForm.autoIndex
-                      ? $t('docs.upload.autoVectorizeOn')
-                      : $t('docs.upload.autoVectorizeOff')
-                  }}
-                </span>
+                <div class="text-xs font-semibold text-foreground">
+                  {{ $t('docs.upload.guideTitle') }}
+                </div>
+                <div class="mt-1.5 space-y-1 text-[11px] leading-5 text-muted-foreground">
+                  <div>{{ $t('docs.upload.guideFirst') }}</div>
+                  <div>{{ $t('docs.upload.guideSecond') }}</div>
+                  <div>{{ $t('docs.upload.guideThird') }}</div>
+                </div>
               </div>
             </div>
-            <div>
-              <div class="mb-2 text-sm font-medium text-foreground">
-                {{ $t('docs.upload.docEnabled') }}
-              </div>
-              <div
-                class="flex h-10 items-center rounded-xl border border-border bg-muted/20 px-3"
-              >
-                <NSwitch v-model:value="uploadForm.enabled" />
-                <span class="ml-3 text-sm text-muted-foreground">
-                  {{
-                    uploadForm.enabled
-                      ? $t('docs.upload.docEnabledOn')
-                      : $t('docs.upload.docEnabledOff')
-                  }}
-                </span>
-              </div>
-            </div>
-          </div>
 
-          <div
-            class="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground"
-          >
-            <div class="mb-1.5 text-xs font-semibold text-foreground">
-              {{ $t('docs.upload.segmenterGuide') }}
-            </div>
-            <div class="space-y-1.5">
-              <div>
-                {{ $t('docs.upload.chunkSizeHint') }}
-              </div>
-              <div>
-                {{ $t('docs.upload.overlapSizeHint') }}
-              </div>
-              <div>
-                {{ $t('docs.upload.parserHint') }} docling-serve{{
-                  $t('docs.upload.parserHintSuffix')
-                }}
-              </div>
-              <div>
-                {{ $t('docs.upload.configPersistHint') }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-      <div
-        v-if="currentStep === 3"
-        class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_320px]"
-      >
-        <div class="min-w-0">
-          <div class="grid gap-3 md:grid-cols-3">
-            <div class="rounded-lg border border-border bg-muted/30 p-4">
+            <section
+              class="flex min-w-0 flex-col rounded-xl border border-border/70 bg-card"
+            >
               <div
-                class="text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
-              >
-                {{ $t('docs.upload.summaryDocCount') }}
-              </div>
-              <div class="mt-3 text-3xl font-semibold text-foreground">
-                {{ queueItems.length }}
-              </div>
-            </div>
-            <div class="rounded-lg border border-border bg-muted/30 p-4">
-              <div
-                class="text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
-              >
-                {{ $t('docs.upload.summaryTotalSize') }}
-              </div>
-              <div class="mt-3 text-3xl font-semibold text-primary">
-                {{ formatDocsFileSize(totalSize) }}
-              </div>
-            </div>
-            <div class="rounded-lg border border-border bg-muted/30 p-4">
-              <div
-                class="text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
-              >
-                {{ $t('docs.upload.summaryTargetKnowledge') }}
-              </div>
-              <div class="mt-3 text-lg font-semibold text-foreground">
-                {{
-                  lookups.knowledges.find(
-                    (item) => item.value === uploadForm.knowledgeId,
-                  )?.label || $t('docs.upload.summaryNotSelected')
-                }}
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-4 grid gap-4 lg:grid-cols-2">
-            <div class="rounded-lg border border-border bg-muted/30 p-4">
-              <div class="text-sm font-semibold text-foreground">
-                {{ $t('docs.upload.segmentConfig') }}
-              </div>
-              <div class="mt-3 space-y-2 text-sm text-muted-foreground">
-                <div>
-                  {{
-                    $t('docs.upload.chunkSizeSummary', {
-                      size: uploadForm.chunkSize,
-                    })
-                  }}
-                </div>
-                <div>
-                  {{
-                    $t('docs.upload.overlapSizeSummary', {
-                      size: uploadForm.overlapSize,
-                    })
-                  }}
-                </div>
-                <div>
-                  {{
-                    $t('docs.upload.typeSummary', {
-                      type: uploadForm.type || $t('docs.upload.typeSummaryDefault'),
-                    })
-                  }}
-                </div>
-                <div>
-                  {{
-                    $t('docs.upload.parserSummary', {
-                      parser:
-                        docParseModeOptions().find(
-                          (item) => item.value === uploadForm.parseMode,
-                        )?.label || $t('docs.upload.parserSummaryDefault'),
-                    })
-                  }}
-                </div>
-              </div>
-            </div>
-            <div class="rounded-lg border border-border bg-muted/30 p-4">
-              <div class="text-sm font-semibold text-foreground">
-                {{ $t('docs.upload.executeStrategy') }}
-              </div>
-              <div class="mt-3 space-y-2 text-sm text-muted-foreground">
-                <div>
-                  {{
-                    $t('docs.upload.autoVectorizeSummary', {
-                      value: uploadForm.autoIndex
-                        ? $t('common.status.yes')
-                        : $t('common.status.no'),
-                    })
-                  }}
-                </div>
-                <div>
-                  {{
-                    $t('docs.upload.docEnabledSummary', {
-                      value: uploadForm.enabled
-                        ? $t('common.status.yes')
-                        : $t('common.status.no'),
-                    })
-                  }}
-                </div>
-                <div>
-                  {{
-                    $t('docs.upload.openPreviewSummary', {
-                      value: uploadForm.openPreviewAfterUpload
-                        ? $t('common.status.yes')
-                        : $t('common.status.no'),
-                    })
-                  }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-4 rounded-lg border border-border bg-muted/20 p-4">
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <div class="text-sm font-semibold text-foreground">
-                {{ $t('docs.upload.queueConfirm') }}
-              </div>
-              <div class="flex items-center gap-2">
-                <NTag :bordered="false" round type="success">
-                  {{ $t('docs.upload.uploadedCount', { count: uploadedCount }) }}
-                </NTag>
-                <NTag :bordered="false" round type="error">
-                  {{ $t('docs.upload.failedCount', { count: failedCount }) }}
-                </NTag>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="item in queueItems"
-                :key="item.uid"
-                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2"
+                class="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-3"
               >
                 <div class="min-w-0">
-                  <div class="truncate text-sm font-medium text-foreground">
-                    {{ item.name || removeDocsFileExtension(item.file.name) }}
+                  <div class="text-sm font-semibold text-foreground">
+                    {{ $t('docs.upload.queueTitle') }}
                   </div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {{ item.file.name }} ·
-                    {{ formatDocsFileSize(item.file.size) }}
+                  <div class="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                    {{
+                      $t('docs.upload.queueDescription', {
+                        count: queueItems.length,
+                      })
+                    }}
                   </div>
-                  <div v-if="item.error" class="mt-1 text-xs text-destructive">
+                </div>
+                <span
+                  class="inline-flex shrink-0 items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
+                >
+                  <Files class="size-3" />
+                  {{ queueItems.length }}
+                </span>
+              </div>
+
+              <div v-if="queueItems.length > 0" class="space-y-2 p-3">
+                <div
+                  v-for="item in queueItems"
+                  :key="item.uid"
+                  class="rounded-lg border border-border/70 bg-muted/15 px-3 py-2.5 transition-colors hover:border-border"
+                >
+                  <div
+                    class="grid gap-2 md:grid-cols-[minmax(0,1fr)_76px_76px] md:items-center"
+                  >
+                    <NInput
+                      v-model:value="item.name"
+                      :placeholder="$t('docs.upload.namePlaceholder')"
+                    />
+                    <div
+                      class="flex h-8 items-center justify-center rounded-md border border-border/70 bg-card px-2 text-[11px] uppercase tracking-wide text-muted-foreground"
+                    >
+                      {{ item.type }}
+                    </div>
+                    <div
+                      class="flex h-8 items-center justify-center rounded-md border border-border/70 bg-card px-2 text-[11px] tabular-nums text-muted-foreground"
+                    >
+                      {{ formatDocsFileSize(item.file.size) }}
+                    </div>
+                  </div>
+                  <div
+                    class="mt-2 flex items-center justify-between gap-2 whitespace-nowrap"
+                  >
+                    <div class="min-w-0 truncate text-[11px] text-muted-foreground">
+                      {{ item.file.name }}
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1.5">
+                      <span
+                        :class="
+                          item.status === 'failed'
+                            ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                            : item.status === 'uploaded'
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : item.status === 'uploading'
+                                ? 'border-primary/30 bg-primary/10 text-primary'
+                                : 'border-border bg-muted/40 text-muted-foreground'
+                        "
+                        class="inline-flex h-[20px] items-center rounded-[5px] border px-1.5 text-[10px] font-medium"
+                      >
+                        {{
+                          item.status === 'uploaded'
+                            ? $t('docs.upload.statusUploaded')
+                            : item.status === 'uploading'
+                              ? $t('docs.upload.statusUploading')
+                              : item.status === 'failed'
+                                ? $t('docs.upload.statusFailed')
+                                : $t('docs.upload.statusPending')
+                        }}
+                      </span>
+                      <NButton
+                        quaternary
+                        size="tiny"
+                        type="error"
+                        @click="removeQueueItem(item.uid)"
+                      >
+                        {{ $t('docs.upload.remove') }}
+                      </NButton>
+                    </div>
+                  </div>
+                  <div v-if="item.error" class="mt-1 text-[11px] text-destructive">
                     {{ item.error }}
                   </div>
                 </div>
-                <NTag
-                  :bordered="false"
-                  :type="
-                    item.status === 'uploaded'
-                      ? 'success'
-                      : item.status === 'uploading'
-                        ? 'warning'
-                        : item.status === 'failed'
-                          ? 'error'
-                          : 'default'
-                  "
-                  round
-                >
-                  {{
-                    item.status === 'uploaded'
-                      ? $t('docs.upload.statusUploaded')
-                      : item.status === 'uploading'
-                        ? $t('docs.upload.statusUploading')
-                        : item.status === 'failed'
-                          ? $t('docs.upload.statusFailed')
-                          : $t('docs.upload.statusPending')
-                  }}
-                </NTag>
               </div>
+
+              <div
+                v-else
+                class="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center"
+              >
+                <div
+                  class="flex size-10 items-center justify-center rounded-lg border border-border/70 bg-muted/30 text-muted-foreground/70"
+                >
+                  <Files class="size-5" />
+                </div>
+                <div class="text-xs leading-5 text-muted-foreground">
+                  {{ $t('docs.upload.queueEmpty') }}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- 第 2 步：分段设置 -->
+          <div
+            v-else-if="currentStep === 2"
+            class="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]"
+          >
+            <div class="flex min-w-0 flex-col gap-3">
+              <section class="rounded-xl border border-border/70 bg-card">
+                <div class="border-b border-border/60 px-4 py-3">
+                  <h2 class="text-sm font-semibold text-foreground">
+                    {{ $t('knowledge.settings.basicTitle') }}
+                  </h2>
+                  <p class="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                    {{ $t('knowledge.settings.basicDescription') }}
+                  </p>
+                </div>
+                <div class="grid gap-3 p-4 md:grid-cols-2">
+                  <div>
+                    <div class="mb-1.5 text-xs font-medium text-foreground/80">
+                      {{ $t('docs.upload.knowledge') }}
+                    </div>
+                    <NSelect
+                      v-model:value="uploadForm.knowledgeId"
+                      :options="knowledgeOptions"
+                      :placeholder="$t('docs.upload.knowledgePlaceholder')"
+                    />
+                  </div>
+                  <div>
+                    <div class="mb-1.5 text-xs font-medium text-foreground/80">
+                      {{ $t('docs.upload.typeOverride') }}
+                    </div>
+                    <NSelect
+                      v-model:value="uploadForm.type"
+                      :options="typeOptions"
+                      :placeholder="$t('docs.upload.typePlaceholder')"
+                    />
+                  </div>
+                  <div class="md:col-span-2">
+                    <div class="mb-1.5 text-xs font-medium text-foreground/80">
+                      {{ $t('docs.upload.parserMode') }}
+                    </div>
+                    <NSelect
+                      v-model:value="uploadForm.parseMode"
+                      :options="parseModeOptions"
+                      :placeholder="$t('docs.upload.parserPlaceholder')"
+                    />
+                    <div class="mt-1.5 text-[11px] leading-5 text-muted-foreground">
+                      {{ currentParseModeDescription }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="mb-1.5 text-xs font-medium text-foreground/80">
+                      {{ $t('docs.upload.chunkSize') }}
+                    </div>
+                    <NInputNumber
+                      v-model:value="uploadForm.chunkSize"
+                      :min="100"
+                      :step="50"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <div class="mb-1.5 text-xs font-medium text-foreground/80">
+                      {{ $t('docs.upload.overlapSize') }}
+                    </div>
+                    <NInputNumber
+                      v-model:value="uploadForm.overlapSize"
+                      :min="0"
+                      :step="20"
+                      class="w-full"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section class="rounded-xl border border-border/70 bg-card">
+                <div class="border-b border-border/60 px-4 py-3">
+                  <h2 class="text-sm font-semibold text-foreground">
+                    {{ $t('docs.upload.executeStrategy') }}
+                  </h2>
+                  <p class="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                    {{ $t('docs.upload.configPersistHint') }}
+                  </p>
+                </div>
+                <div class="grid gap-3 p-4 md:grid-cols-2">
+                  <div
+                    class="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-2.5"
+                  >
+                    <div class="min-w-0">
+                      <div class="text-xs font-medium text-foreground">
+                        {{ $t('docs.upload.autoVectorize') }}
+                      </div>
+                      <div class="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                        {{
+                          uploadForm.autoIndex
+                            ? $t('docs.upload.autoVectorizeOn')
+                            : $t('docs.upload.autoVectorizeOff')
+                        }}
+                      </div>
+                    </div>
+                    <NSwitch v-model:value="uploadForm.autoIndex" />
+                  </div>
+                  <div
+                    class="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-2.5"
+                  >
+                    <div class="min-w-0">
+                      <div class="text-xs font-medium text-foreground">
+                        {{ $t('docs.upload.docEnabled') }}
+                      </div>
+                      <div class="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                        {{
+                          uploadForm.enabled
+                            ? $t('docs.upload.docEnabledOn')
+                            : $t('docs.upload.docEnabledOff')
+                        }}
+                      </div>
+                    </div>
+                    <NSwitch v-model:value="uploadForm.enabled" />
+                  </div>
+                </div>
+              </section>
             </div>
+
+            <aside
+              class="rounded-xl border border-dashed border-border bg-muted/20 p-4"
+            >
+              <div class="text-xs font-semibold text-foreground">
+                {{ $t('docs.upload.segmenterGuide') }}
+              </div>
+              <div
+                class="mt-2.5 space-y-2 text-[11px] leading-5 text-muted-foreground"
+              >
+                <div>{{ $t('docs.upload.chunkSizeHint') }}</div>
+                <div>{{ $t('docs.upload.overlapSizeHint') }}</div>
+                <div>
+                  {{ $t('docs.upload.parserHint') }} docling-serve{{
+                    $t('docs.upload.parserHintSuffix')
+                  }}
+                </div>
+                <div>{{ $t('docs.upload.configPersistHint') }}</div>
+              </div>
+            </aside>
+          </div>
+
+          <!-- 第 3 步：确认并执行 -->
+          <div
+            v-else
+            class="grid gap-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]"
+          >
+            <div class="flex min-w-0 flex-col gap-3">
+              <div class="grid gap-3 sm:grid-cols-3">
+                <div
+                  class="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+                >
+                  <div
+                    class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    {{ $t('docs.upload.summaryDocCount') }}
+                  </div>
+                  <div class="mt-2 text-2xl font-semibold tabular-nums text-foreground">
+                    {{ queueItems.length }}
+                  </div>
+                </div>
+                <div
+                  class="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+                >
+                  <div
+                    class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    {{ $t('docs.upload.summaryTotalSize') }}
+                  </div>
+                  <div class="mt-2 text-2xl font-semibold tabular-nums text-primary">
+                    {{ formatDocsFileSize(totalSize) }}
+                  </div>
+                </div>
+                <div
+                  class="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+                >
+                  <div
+                    class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+                  >
+                    {{ $t('docs.upload.summaryTargetKnowledge') }}
+                  </div>
+                  <div
+                    class="mt-2 truncate text-sm font-semibold text-foreground"
+                  >
+                    {{
+                      lookups.knowledges.find(
+                        (item) => item.value === uploadForm.knowledgeId,
+                      )?.label || $t('docs.upload.summaryNotSelected')
+                    }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid gap-3 lg:grid-cols-2">
+                <section class="rounded-xl border border-border/70 bg-card p-4">
+                  <div class="text-xs font-semibold text-foreground">
+                    {{ $t('docs.upload.segmentConfig') }}
+                  </div>
+                  <div class="mt-2 space-y-1.5 text-[11px] leading-5 text-muted-foreground">
+                    <div>
+                      {{
+                        $t('docs.upload.chunkSizeSummary', {
+                          size: uploadForm.chunkSize,
+                        })
+                      }}
+                    </div>
+                    <div>
+                      {{
+                        $t('docs.upload.overlapSizeSummary', {
+                          size: uploadForm.overlapSize,
+                        })
+                      }}
+                    </div>
+                    <div>
+                      {{
+                        $t('docs.upload.typeSummary', {
+                          type:
+                            uploadForm.type ||
+                            $t('docs.upload.typeSummaryDefault'),
+                        })
+                      }}
+                    </div>
+                    <div>
+                      {{
+                        $t('docs.upload.parserSummary', {
+                          parser:
+                            docParseModeOptions().find(
+                              (item) => item.value === uploadForm.parseMode,
+                            )?.label || $t('docs.upload.parserSummaryDefault'),
+                        })
+                      }}
+                    </div>
+                  </div>
+                </section>
+                <section class="rounded-xl border border-border/70 bg-card p-4">
+                  <div class="text-xs font-semibold text-foreground">
+                    {{ $t('docs.upload.executeStrategy') }}
+                  </div>
+                  <div class="mt-2 space-y-1.5 text-[11px] leading-5 text-muted-foreground">
+                    <div>
+                      {{
+                        $t('docs.upload.autoVectorizeSummary', {
+                          value: uploadForm.autoIndex
+                            ? $t('common.status.yes')
+                            : $t('common.status.no'),
+                        })
+                      }}
+                    </div>
+                    <div>
+                      {{
+                        $t('docs.upload.docEnabledSummary', {
+                          value: uploadForm.enabled
+                            ? $t('common.status.yes')
+                            : $t('common.status.no'),
+                        })
+                      }}
+                    </div>
+                    <div>
+                      {{
+                        $t('docs.upload.openPreviewSummary', {
+                          value: uploadForm.openPreviewAfterUpload
+                            ? $t('common.status.yes')
+                            : $t('common.status.no'),
+                        })
+                      }}
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <section
+                class="rounded-xl border border-border/70 bg-card p-4"
+              >
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div class="text-xs font-semibold text-foreground">
+                    {{ $t('docs.upload.queueConfirm') }}
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="inline-flex h-[20px] items-center rounded-[5px] border border-emerald-500/30 bg-emerald-500/10 px-1.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                      {{
+                        $t('docs.upload.uploadedCount', {
+                          count: uploadedCount,
+                        })
+                      }}
+                    </span>
+                    <span
+                      class="inline-flex h-[20px] items-center rounded-[5px] border border-destructive/30 bg-destructive/10 px-1.5 text-[10px] font-medium text-destructive"
+                    >
+                      {{
+                        $t('docs.upload.failedCount', { count: failedCount })
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in queueItems"
+                    :key="item.uid"
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/15 px-3 py-2"
+                  >
+                    <div class="min-w-0">
+                      <div class="truncate text-xs font-medium text-foreground">
+                        {{ item.name || removeDocsFileExtension(item.file.name) }}
+                      </div>
+                      <div class="mt-0.5 text-[11px] text-muted-foreground">
+                        {{ item.file.name }} ·
+                        {{ formatDocsFileSize(item.file.size) }}
+                      </div>
+                      <div v-if="item.error" class="mt-1 text-[11px] text-destructive">
+                        {{ item.error }}
+                      </div>
+                    </div>
+                    <span
+                      :class="
+                        item.status === 'uploaded'
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : item.status === 'uploading'
+                            ? 'border-primary/30 bg-primary/10 text-primary'
+                            : item.status === 'failed'
+                              ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                              : 'border-border bg-muted/40 text-muted-foreground'
+                      "
+                      class="inline-flex h-[20px] shrink-0 items-center rounded-[5px] border px-1.5 text-[10px] font-medium"
+                    >
+                      {{
+                        item.status === 'uploaded'
+                          ? $t('docs.upload.statusUploaded')
+                          : item.status === 'uploading'
+                            ? $t('docs.upload.statusUploading')
+                            : item.status === 'failed'
+                              ? $t('docs.upload.statusFailed')
+                              : $t('docs.upload.statusPending')
+                      }}
+                    </span>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="flex min-w-0 flex-col gap-3">
+              <section class="rounded-xl border border-border/70 bg-card p-4">
+                <div class="text-xs font-semibold text-foreground">
+                  {{ $t('docs.upload.afterUpload') }}
+                </div>
+                <div
+                  class="mt-2.5 flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-2.5"
+                >
+                  <span class="text-[11px] leading-5 text-muted-foreground">
+                    {{ $t('docs.upload.openPreviewHint') }}
+                  </span>
+                  <NSwitch v-model:value="uploadForm.openPreviewAfterUpload" />
+                </div>
+              </section>
+
+              <section
+                class="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-3"
+              >
+                <div class="space-y-2 text-[11px] leading-5 text-muted-foreground">
+                  <div>{{ $t('docs.upload.stayHint') }}</div>
+                  <div>{{ $t('docs.upload.asyncHint') }}</div>
+                </div>
+              </section>
+            </aside>
           </div>
         </div>
 
-          <div
-            class="rounded-lg border border-dashed border-border bg-muted/30 p-3"
-          >
-            <div class="text-sm font-semibold text-foreground">
-              {{ $t('docs.upload.afterUpload') }}
-            </div>
-          <div
-            class="mt-3 flex h-12 items-center rounded-lg border border-border bg-muted/20 px-3"
-          >
-            <NSwitch v-model:value="uploadForm.openPreviewAfterUpload" />
-            <span class="ml-3 text-sm text-muted-foreground">
-              {{ $t('docs.upload.openPreviewHint') }}
+        <!-- 底部操作条 -->
+        <div
+          class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border/70 bg-muted/20 px-3 py-3 sm:px-4"
+        >
+          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+            <span
+              class="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold tabular-nums text-primary"
+            >
+              {{ currentStep }}
+            </span>
+            <span class="tabular-nums">
+              {{ $t('docs.upload.stepIndicator', { current: currentStep, total: 3 }) }}
             </span>
           </div>
-
-          <div class="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
-            <div>
-              {{ $t('docs.upload.stayHint') }}
-            </div>
-            <div>
-              {{ $t('docs.upload.asyncHint') }}
-            </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <NButton
+              secondary
+              :disabled="currentStep === 1 || submitting"
+              @click="goPrevStep"
+            >
+              {{ $t('docs.upload.prev') }}
+            </NButton>
+            <NButton
+              v-if="currentStep < 3"
+              :disabled="submitting"
+              type="primary"
+              @click="goNextStep"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                {{ $t('docs.upload.next') }}
+                <ArrowRight class="size-3.5" />
+              </span>
+            </NButton>
+            <NButton
+              v-else
+              :loading="submitting"
+              type="primary"
+              @click="submitUploadQueue"
+            >
+              {{ $t('docs.upload.confirmUpload') }}
+            </NButton>
           </div>
-        </div>
-      </div>
-
-      <div
-        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
-      >
-        <div class="text-sm text-muted-foreground">
-          {{
-            $t('docs.upload.stepIndicator', { current: currentStep, total: 3 })
-          }}
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <NButton
-            :disabled="currentStep === 1 || submitting"
-            @click="goPrevStep"
-          >
-            {{ $t('docs.upload.prev') }}
-          </NButton>
-          <NButton
-            v-if="currentStep < 3"
-            :disabled="submitting"
-            type="primary"
-            @click="goNextStep"
-          >
-            {{ $t('docs.upload.next') }}
-          </NButton>
-          <NButton
-            v-else
-            :loading="submitting"
-            type="primary"
-            @click="submitUploadQueue"
-          >
-            {{ $t('docs.upload.confirmUpload') }}
-          </NButton>
         </div>
       </div>
     </div>

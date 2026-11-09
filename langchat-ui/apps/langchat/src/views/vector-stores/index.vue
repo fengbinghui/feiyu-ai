@@ -1,19 +1,19 @@
 <script lang="ts" setup>
-import type {AigcVectorStore} from '#/api/aigc/vector-store';
+import type { AigcVectorStore } from '#/api/aigc/vector-store';
 
-import {computed, onMounted, ref, watch} from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
-import {Page} from '@vben/common-ui';
-import {LayoutGrid, Plus, RefreshCcw, Tag} from '@vben/icons';
-import {$t} from '@vben/locales';
+import { Page } from '@vben/common-ui';
+import { LayoutGrid, Plus, RefreshCcw, Search, Tag } from '@vben/icons';
+import { $t } from '@vben/locales';
 
-import {NButton, NPagination} from 'naive-ui';
+import { NButton, NInput, NPagination, NTag } from 'naive-ui';
 
-import {dialog, message} from '#/adapter/naive';
-import {vectorStoreApi} from '#/api/aigc/vector-store';
-import LcActionCard from '#/components/LcActionCard/index.vue';
-import LcListCard from '#/components/LcListCard/index.vue';
-import {VECTOR_PROVIDER_OPTIONS} from '#/views/shared/aigc/options';
+import { dialog, message } from '#/adapter/naive';
+import { vectorStoreApi } from '#/api/aigc/vector-store';
+import LcCard from '#/components/LcCard/index.vue';
+import LcEmptyState from '#/components/LcEmptyState/index.vue';
+import { VECTOR_PROVIDER_OPTIONS } from '#/views/shared/aigc/options';
 
 import VectorStoreCard from './card.vue';
 import VectorStoreEdit from './edit.vue';
@@ -28,7 +28,7 @@ const pageSize = ref(9);
 const items = ref<AigcVectorStore[]>([]);
 const currentItem = ref<null | Partial<AigcVectorStore>>(null);
 const providerTagOptions = computed(() => [
-  {label: $t('common.labels.all'), value: 'ALL'},
+  { label: $t('common.labels.all'), value: 'ALL' },
   ...VECTOR_PROVIDER_OPTIONS.map((item) => ({
     label: item.label,
     value: String(item.value),
@@ -55,14 +55,13 @@ const pagedItems = computed(() => {
   return filteredItems.value.slice(start, start + pageSize.value);
 });
 
+const hasActiveFilter = computed(
+  () => keyword.value.trim() !== '' || selectedProvider.value !== 'ALL',
+);
+
 watch([keyword, selectedProvider], () => {
   currentPage.value = 1;
 });
-
-const actionItems = computed(() => [
-  {key: 'refresh', label: $t('vectorStores.actions.refreshList'), icon: RefreshCcw},
-  {key: 'create', label: $t('vectorStores.actions.create'), icon: Plus},
-]);
 
 const summaryText = computed(() => {
   const total = items.value.length;
@@ -70,7 +69,7 @@ const summaryText = computed(() => {
     items.value.map((item) => item.provider).filter(Boolean),
   ).size;
   const ready = items.value.filter((item) => Boolean(item.tableName)).length;
-  return $t('vectorStores.list.summary', {providers, ready, total});
+  return $t('vectorStores.list.summary', { providers, ready, total });
 });
 
 async function loadList() {
@@ -90,16 +89,6 @@ function handleCreate() {
 function handleEdit(item: AigcVectorStore) {
   currentItem.value = item;
   showEdit.value = true;
-}
-
-function handleAction(action: { key: string }) {
-  if (action.key === 'refresh') {
-    void loadList();
-    return;
-  }
-  if (action.key === 'create') {
-    handleCreate();
-  }
 }
 
 async function handleDelete(item: AigcVectorStore) {
@@ -143,52 +132,116 @@ onMounted(loadList);
 </script>
 
 <template>
-  <Page>
-    <div class="flex flex-col gap-2">
+  <Page
+    content-class="p-4"
+    :description="summaryText"
+    header-class="px-4 py-3.5"
+    :title="$t('menu.dynamic.vector_stores')"
+  >
+    <template #extra>
+      <div class="flex items-center gap-2">
+        <NButton secondary @click="loadList">
+          <template #icon>
+            <RefreshCcw class="size-3.5" />
+          </template>
+          {{ $t('common.actions.refreshList') }}
+        </NButton>
+        <NButton type="primary" @click="handleCreate">
+          <template #icon>
+            <Plus class="size-3.5" />
+          </template>
+          {{ $t('vectorStores.actions.create') }}
+        </NButton>
+      </div>
+    </template>
+
+    <div class="flex flex-col gap-3">
+      <!-- 供应商筛选 / 搜索工具条 -->
       <div
-        class="rounded-xl border border-border bg-card px-3 py-2.5 text-xs text-muted-foreground"
+        class="flex flex-col gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between"
       >
-        <span class="font-medium text-primary">{{ summaryText }}</span>
+        <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+          <NTag
+            v-for="(option, index) in providerTagOptions"
+            :key="option.value"
+            :bordered="selectedProvider !== option.value"
+            :type="selectedProvider === option.value ? 'primary' : 'default'"
+            class="c-filter-tag cursor-pointer"
+            @click="selectedProvider = String(option.value)"
+          >
+            <span class="inline-flex items-center gap-1">
+              <LayoutGrid v-if="index === 0" class="size-3" />
+              <Tag v-else class="size-3" />
+              <span>{{ option.label }}</span>
+            </span>
+          </NTag>
+        </div>
+        <div class="w-full shrink-0 lg:w-72">
+          <NInput
+            v-model:value="keyword"
+            clearable
+            :placeholder="$t('vectorStores.list.searchPlaceholder')"
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
+        </div>
       </div>
 
-      <LcListCard
-        :active-tag="selectedProvider"
-        :all-tag-icon="LayoutGrid"
-        :common-tag-icon="Tag"
-        :items="pagedItems"
-        :loading="loading"
-        :search-placeholder="$t('vectorStores.list.searchPlaceholder')"
-        :search-value="keyword"
-        :tags="providerTagOptions"
-        :empty-description="$t('vectorStores.list.emptyDescription')"
-        @update:active-tag="selectedProvider = $event"
-        @update:search-value="keyword = $event"
+      <!-- 向量库卡片网格 -->
+      <div
+        v-if="loading"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
-        <template #leading-card>
-          <LcActionCard
-            :actions="actionItems"
-            :description="$t('vectorStores.list.actionsDescription')"
-            :title="$t('vectorStores.list.actionsTitle')"
-            @action="handleAction"
-          />
-        </template>
-        <template #item="{ item }">
-          <VectorStoreCard
-            :item="item"
-            @delete="handleDelete"
-            @edit="handleEdit"
-          />
-        </template>
-        <template #empty-extra>
-          <NButton type="primary" @click="handleCreate">
-{{
-            $t('vectorStores.actions.create')
-          }}
-</NButton>
-        </template>
-      </LcListCard>
+        <LcCard v-for="index in 6" :key="index" loading :show-icon="false" />
+      </div>
+      <div
+        v-else-if="pagedItems.length > 0"
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+      >
+        <VectorStoreCard
+          v-for="item in pagedItems"
+          :key="item.id"
+          :item="item"
+          @delete="handleDelete"
+          @edit="handleEdit"
+        />
+      </div>
+      <div
+        v-else
+        class="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
+      >
+        <LcEmptyState
+          :description="
+            hasActiveFilter
+              ? $t('vectorStores.list.searchPlaceholder')
+              : $t('vectorStores.list.emptyDescription')
+          "
+          :icon="Plus"
+          :title="$t('common.empty.noData')"
+        >
+          <NButton v-if="!hasActiveFilter" type="primary" @click="handleCreate">
+            <template #icon>
+              <Plus class="size-3.5" />
+            </template>
+            {{ $t('vectorStores.actions.create') }}
+          </NButton>
+          <NButton
+            v-else
+            quaternary
+            @click="keyword = ''; selectedProvider = 'ALL'"
+          >
+            {{ $t('common.actions.clearFilter') }}
+          </NButton>
+        </LcEmptyState>
+      </div>
 
-      <div v-if="filteredItems.length > pageSize" class="flex justify-end">
+      <!-- 分页 -->
+      <div
+        v-if="filteredItems.length > pageSize"
+        class="flex items-center justify-end"
+      >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
@@ -207,3 +260,14 @@ onMounted(loadList);
     </div>
   </Page>
 </template>
+
+<style scoped>
+.c-filter-tag.n-tag {
+  padding: 2px 10px;
+}
+
+.c-filter-tag.n-tag :deep(.n-tag__content) {
+  font-size: 11px;
+  font-weight: 500;
+}
+</style>

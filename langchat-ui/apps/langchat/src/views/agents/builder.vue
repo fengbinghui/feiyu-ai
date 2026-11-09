@@ -19,7 +19,7 @@ import {$t} from '@vben/locales';
 import {preferences} from '@vben/preferences';
 import {useUserStore} from '@vben/stores';
 
-import {NEmpty} from 'naive-ui';
+import {NSpin} from 'naive-ui';
 
 import {message} from '#/adapter/naive';
 import {agentApi} from '#/api/aigc/agent';
@@ -530,7 +530,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Page auto-content-height>
-    <div class="flex h-full flex-col gap-2">
+    <div class="flex h-full flex-col gap-3">
       <AgentBuilderHeader
         v-model:tab="activeTab"
         :app-icon="formModel.icon || formModel.avatar || ''"
@@ -587,9 +587,12 @@ onBeforeUnmount(() => {
 
       <div
         v-else
-        class="rounded-xl border border-dashed border-border bg-card px-6 py-16"
+        class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card"
       >
-        <NEmpty :description="$t('agents.builder.loadingDetail')" />
+        <NSpin size="small" />
+        <div class="text-xs text-muted-foreground">
+          {{ $t('agents.builder.loadingDetail') }}
+        </div>
       </div>
     </div>
   </Page>

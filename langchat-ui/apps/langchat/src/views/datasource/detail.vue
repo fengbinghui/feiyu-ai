@@ -32,6 +32,7 @@ import {
   introspectDataSource,
   saveDataSourceStructure,
 } from '#/api/aigc/datasource';
+import LcStatusTag from '#/components/LcStatusTag/index.vue';
 
 import { getDatasourceTypeMeta } from './datasource-meta';
 
@@ -135,6 +136,32 @@ const currentRows = computed<ColumnRow[]>(() => {
       )
     : rows;
 });
+
+/** 页面顶部概览指标：仅做展示层汇总，不参与任何数据加载逻辑。 */
+const statTiles = computed(() => [
+  {
+    label: $t('datasource.detail.originalTables'),
+    value: structure.value.length,
+    tone: 'primary',
+  },
+  {
+    label: $t('datasource.detail.importedTables'),
+    value: customStructure.value.length,
+    tone: 'info',
+  },
+  {
+    label: $t('datasource.detail.retrievalEnabled'),
+    value: enabledTableCount.value,
+    tone: 'success',
+  },
+  {
+    label: $t('common.labels.status'),
+    value: datasource.value?.enabled
+      ? $t('common.status.enabled')
+      : $t('common.status.disabled'),
+    tone: 'default',
+  },
+]);
 
 const originalColumns = computed<VxeGridPropTypes.Columns<ColumnRow>>(() => [
   {
@@ -434,136 +461,164 @@ onMounted(loadDatasource);
 </script>
 
 <template>
-  <Page>
-    <div class="flex h-full min-h-0 flex-col gap-2">
-      <div
-        class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between"
-      >
-        <div class="flex items-center gap-3">
-          <NButton
-            circle
-            quaternary
-            size="small"
-            :aria-label="$t('common.actions.back')"
-            @click="goBack"
-          >
-            <template #icon><ArrowLeft class="size-4" /></template>
-          </NButton>
-          <div
-            class="flex size-10 items-center justify-center rounded-lg border border-border bg-white p-1.5"
-          >
-            <img
-              :alt="`${datasourceTypeMeta.label} logo`"
-              class="size-full object-contain"
-              :src="datasourceTypeMeta.icon"
+  <Page content-class="p-4" header-class="px-4 py-3.5">
+    <template #title>
+      <div class="flex min-w-0 items-center gap-3">
+        <span
+          class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-white p-1.5 shadow-sm"
+        >
+          <img
+            :alt="`${datasourceTypeMeta.label} logo`"
+            class="size-full object-contain"
+            :src="datasourceTypeMeta.icon"
+          />
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="truncate text-base font-semibold text-foreground">
+              {{ datasource?.name || $t('datasource.detail.fallbackTitle') }}
+            </span>
+            <LcStatusTag
+              v-if="datasource"
+              :label="
+                datasource.enabled
+                  ? $t('common.status.enabled')
+                  : $t('common.status.disabled')
+              "
+              :type="datasource.enabled ? 'success' : 'default'"
             />
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <div class="truncate text-lg font-semibold text-foreground">
-                {{ datasource?.name || $t('datasource.detail.fallbackTitle') }}
-              </div>
-              <NTag
-                :bordered="false"
-                :type="datasource?.enabled ? 'success' : 'default'"
-                round
-                >{{
-                  datasource?.enabled
-                    ? $t('common.status.enabled')
-                    : $t('common.status.disabled')
-                }}</NTag
-              >
-            </div>
-            <div class="mt-0.5 text-[11px] text-muted-foreground">
-              {{ datasourceTypeMeta.label }} · {{ datasource?.host || '--' }} ·
-              {{ datasource?.databaseName || '--' }}
-            </div>
+          <div
+            class="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            <span class="shrink-0">{{ datasourceTypeMeta.label }}</span>
+            <span class="shrink-0 opacity-40">·</span>
+            <span class="shrink-0 tabular-nums">{{
+              datasource?.host || '--'
+            }}</span>
+            <span class="shrink-0 opacity-40">·</span>
+            <span class="truncate">{{ datasource?.databaseName || '--' }}</span>
           </div>
         </div>
       </div>
+    </template>
 
-      <div
-        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card p-4"
-      >
-        <div class="mb-4 grid gap-2 border-b border-border pb-3 md:grid-cols-2">
-          <button
-            class="rounded-lg border p-3 text-left transition-colors"
-            :class="
-              activeTab === 'original'
-                ? 'border-primary/40 bg-primary/5'
-                : 'border-transparent bg-muted/30 hover:bg-muted/60'
-            "
-            type="button"
-            @click="switchTab('original')"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold">{{
-                $t('datasource.detail.discoveryTitle')
-              }}</span
-              ><span class="flex items-center gap-1.5"
-                ><NTag size="small">{{
-                  $t('datasource.detail.tablesCount', {
-                    count: structure.length,
-                  })
-                }}</NTag
-                ><NTag
-                  v-if="pendingImportCount > 0"
-                  size="small"
-                  type="warning"
-                  >{{
-                    $t('datasource.detail.pendingImport', {
-                      count: pendingImportCount,
-                    })
-                  }}</NTag
-                ></span
-              >
-            </div>
-            <div class="mt-1 text-[11px] text-muted-foreground">
-              {{ $t('datasource.detail.discoveryHint') }}
-            </div>
-          </button>
-          <button
-            class="rounded-lg border p-3 text-left transition-colors"
-            :class="
-              activeTab === 'custom'
-                ? 'border-emerald-500/50 bg-emerald-500/5'
-                : 'border-transparent bg-muted/30 hover:bg-muted/60'
-            "
-            type="button"
-            @click="switchTab('custom')"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold">{{
-                $t('datasource.detail.aiConfigTitle')
-              }}</span
-              ><span
-                class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"
-                ><Check class="size-3.5" />{{
-                  $t('datasource.detail.retrievalCount', {
-                    count: enabledTableCount,
-                  })
-                }}</span
-              >
-            </div>
-            <div class="mt-1 text-[11px] text-muted-foreground">
-              {{ $t('datasource.detail.aiConfigHint') }}
-            </div>
-          </button>
-        </div>
-
-        <div
+    <template #extra>
+      <div class="flex items-center gap-2">
+        <NButton secondary @click="goBack">
+          <template #icon>
+            <ArrowLeft class="size-3.5" />
+          </template>
+          {{ $t('common.actions.back') }}
+        </NButton>
+        <NButton
           v-if="activeTab === 'custom'"
-          class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
+          :loading="savingStructure"
+          type="primary"
+          @click="handleSaveStructure"
         >
-          <span>{{ $t('datasource.detail.legend') }}</span>
-          <NButton
-            :loading="savingStructure"
-            size="small"
-            type="primary"
-            @click="handleSaveStructure"
-            ><template #icon><Save class="size-3.5" /></template
-            >{{ $t('datasource.detail.saveConfig') }}</NButton
+          <template #icon>
+            <Save class="size-3.5" />
+          </template>
+          {{ $t('datasource.detail.saveConfig') }}
+        </NButton>
+      </div>
+    </template>
+
+    <div class="flex h-full min-h-0 flex-col gap-3">
+      <!-- 概览指标 -->
+      <div class="grid shrink-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="tile in statTiles"
+          :key="tile.label"
+          class="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-[var(--shadow-card)]"
+        >
+          <span class="min-w-0 truncate text-xs text-muted-foreground">
+            {{ tile.label }}
+          </span>
+          <span
+            class="c-stat-value shrink-0 text-lg font-semibold text-foreground"
+            :class="{
+              'text-primary': tile.tone === 'primary',
+              'text-sky-600 dark:text-sky-400': tile.tone === 'info',
+              'text-emerald-600 dark:text-emerald-400': tile.tone === 'success',
+            }"
           >
+            {{ tile.value }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 内省结果 -->
+      <div
+        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
+      >
+        <div
+          class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3"
+        >
+          <div
+            class="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1"
+          >
+            <button
+              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="
+                activeTab === 'original'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              type="button"
+              @click="switchTab('original')"
+            >
+              <Database class="size-3.5" />
+              <span>{{ $t('datasource.detail.discoveryTitle') }}</span>
+              <span
+                class="rounded bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground"
+              >
+                {{ structure.length }}
+              </span>
+              <span
+                v-if="pendingImportCount > 0"
+                class="rounded bg-amber-100 px-1.5 text-[10px] tabular-nums text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+              >
+                +{{ pendingImportCount }}
+              </span>
+            </button>
+            <button
+              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="
+                activeTab === 'custom'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              type="button"
+              @click="switchTab('custom')"
+            >
+              <Check class="size-3.5" />
+              <span>{{ $t('datasource.detail.aiConfigTitle') }}</span>
+              <span
+                class="rounded bg-muted px-1.5 text-[10px] tabular-nums text-muted-foreground"
+              >
+                {{ customStructure.length }}
+              </span>
+            </button>
+          </div>
+
+          <div class="flex min-w-0 items-center gap-2">
+            <span
+              v-if="activeTab === 'custom'"
+              class="hidden truncate text-[11px] text-muted-foreground xl:inline"
+            >
+              {{ $t('datasource.detail.legend') }}
+            </span>
+            <NTag
+              v-else
+              :bordered="false"
+              class="hidden xl:inline-flex"
+              size="small"
+            >
+              {{ $t('datasource.detail.discoveryHint') }}
+            </NTag>
+          </div>
         </div>
 
         <NSpin
@@ -573,18 +628,20 @@ onMounted(loadDatasource);
         >
           <div
             v-if="sourceTables.length > 0"
-            class="grid min-h-[420px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]"
+            class="grid min-h-[420px] gap-4 p-4 lg:grid-cols-[288px_minmax(0,1fr)]"
           >
             <aside class="rounded-lg border border-border/80 bg-muted/15 p-2">
               <div class="mb-2 flex items-center justify-between px-2 py-1">
-                <span class="text-xs font-semibold text-foreground">{{
-                  activeTab === 'custom'
-                    ? $t('datasource.detail.importedTables')
-                    : $t('datasource.detail.originalTables')
-                }}</span
-                ><NButton quaternary size="tiny" @click="expandAllTables">{{
-                  $t('common.actions.expandAll')
-                }}</NButton>
+                <span class="text-xs font-semibold text-foreground">
+                  {{
+                    activeTab === 'custom'
+                      ? $t('datasource.detail.importedTables')
+                      : $t('datasource.detail.originalTables')
+                  }}
+                </span>
+                <NButton quaternary size="tiny" @click="expandAllTables">
+                  {{ $t('common.actions.expandAll') }}
+                </NButton>
               </div>
               <button
                 class="mb-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors"
@@ -596,14 +653,17 @@ onMounted(loadDatasource);
                 type="button"
                 @click="selectTable('__all__')"
               >
-                <Database class="size-3.5" /><span>{{
-                  activeTab === 'custom'
-                    ? $t('datasource.detail.allImportedTables')
-                    : $t('datasource.detail.allOriginalTables')
-                }}</span
-                ><span class="ml-auto text-[10px] opacity-60">{{
-                  sourceTables.length
-                }}</span>
+                <Database class="size-3.5" />
+                <span class="truncate">
+                  {{
+                    activeTab === 'custom'
+                      ? $t('datasource.detail.allImportedTables')
+                      : $t('datasource.detail.allOriginalTables')
+                  }}
+                </span>
+                <span class="ml-auto text-[10px] tabular-nums opacity-60">
+                  {{ sourceTables.length }}
+                </span>
               </button>
               <div
                 v-for="table in sourceTables"
@@ -611,7 +671,7 @@ onMounted(loadDatasource);
                 class="mb-0.5"
               >
                 <div
-                  class="grid grid-cols-[28px_minmax(0,1fr)_72px_28px] items-center rounded-md pr-3"
+                  class="grid grid-cols-[28px_minmax(0,1fr)_76px_28px] items-center rounded-md pr-3 transition-colors"
                   :class="
                     selectedTable === table.tableName && !selectedColumn
                       ? 'bg-primary/10 text-primary'
@@ -631,16 +691,18 @@ onMounted(loadDatasource);
                     <ChevronDown
                       v-if="expandedTables[table.tableName]"
                       class="size-3.5"
-                    /><ChevronRight v-else class="size-3.5" />
+                    />
+                    <ChevronRight v-else class="size-3.5" />
                   </button>
                   <button
                     class="min-w-0 flex-1 truncate py-2 text-left text-xs font-medium"
                     type="button"
+                    :title="table.tableName"
                     @click="selectTable(table.tableName)"
                   >
                     {{ table.tableName }}
                   </button>
-                  <div class="flex w-[72px] justify-end">
+                  <div class="flex w-[76px] justify-end">
                     <NTag
                       v-if="
                         activeTab === 'original' &&
@@ -649,35 +711,42 @@ onMounted(loadDatasource);
                       :bordered="false"
                       size="small"
                       type="success"
-                      >{{ $t('datasource.detail.imported') }}</NTag
                     >
+                      {{ $t('datasource.detail.imported') }}
+                    </NTag>
                     <NButton
                       v-if="
                         activeTab === 'original' &&
                         !importedTableMap.has(table.tableName)
                       "
-                      class="w-[62px]"
+                      class="w-[66px]"
                       secondary
                       size="tiny"
                       @click="importTable(table)"
-                      ><template #icon><Download class="size-3" /></template
-                      >{{ $t('datasource.detail.import') }}</NButton
                     >
+                      <template #icon>
+                        <Download class="size-3" />
+                      </template>
+                      {{ $t('datasource.detail.import') }}
+                    </NButton>
                     <NTag
                       v-if="activeTab === 'custom'"
                       :bordered="false"
                       size="small"
                       :type="table.enabled === false ? 'default' : 'success'"
-                      >{{
+                    >
+                      {{
                         table.enabled === false
                           ? $t('datasource.detail.retrievalDisabled')
                           : $t('datasource.detail.retrievalEnabled')
-                      }}</NTag
-                    >
+                      }}
+                    </NTag>
                   </div>
-                  <span class="text-right text-[10px] text-muted-foreground">{{
-                    table.columns.length
-                  }}</span>
+                  <span
+                    class="text-right text-[10px] tabular-nums text-muted-foreground"
+                  >
+                    {{ table.columns.length }}
+                  </span>
                 </div>
                 <div
                   v-if="expandedTables[table.tableName]"
@@ -693,8 +762,9 @@ onMounted(loadDatasource);
                     type="button"
                     @click="selectTable(table.tableName)"
                   >
-                    {{ $t('datasource.detail.allFields') }}</button
-                  ><button
+                    {{ $t('datasource.detail.allFields') }}
+                  </button>
+                  <button
                     v-for="column in table.columns"
                     :key="column.name"
                     class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-[11px] text-muted-foreground hover:bg-muted/60"
@@ -708,18 +778,19 @@ onMounted(loadDatasource);
                     type="button"
                     @click="selectTable(table.tableName, column.name)"
                   >
-                    <span class="truncate">{{ column.name }}</span
-                    ><span class="ml-auto pl-2 text-[10px] opacity-60">{{
+                    <span class="truncate">{{ column.name }}</span>
+                    <span class="ml-auto pl-2 text-[10px] opacity-60">{{
                       column.type
                     }}</span>
                   </button>
                 </div>
               </div>
             </aside>
+
             <section class="min-w-0">
               <div class="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div class="text-sm font-semibold text-foreground">
+                <div class="min-w-0">
+                  <div class="truncate text-sm font-semibold text-foreground">
                     {{ selectedLabel }}
                   </div>
                   <div class="mt-0.5 text-[11px] text-muted-foreground">
@@ -730,25 +801,27 @@ onMounted(loadDatasource);
                     }}
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex shrink-0 items-center gap-3">
                   <NTag
                     v-if="activeTab === 'custom'"
                     :bordered="false"
                     type="info"
-                    >{{ $t('datasource.detail.fieldsEditable') }}</NTag
                   >
+                    {{ $t('datasource.detail.fieldsEditable') }}
+                  </NTag>
                   <div
                     v-if="selectedManagedTable"
                     class="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-2.5 py-1.5"
                   >
-                    <span class="text-xs text-muted-foreground">{{
-                      $t('datasource.detail.allowAiRetrieval')
-                    }}</span
-                    ><NSwitch
+                    <span class="text-xs text-muted-foreground">
+                      {{ $t('datasource.detail.allowAiRetrieval') }}
+                    </span>
+                    <NSwitch
                       :value="selectedManagedTable.enabled !== false"
                       size="small"
                       @update:value="toggleSelectedTableEnabled"
-                    /><NButton
+                    />
+                    <NButton
                       v-tippy="$t('datasource.detail.removeImportedTable')"
                       circle
                       quaternary
@@ -756,38 +829,46 @@ onMounted(loadDatasource);
                       type="error"
                       :aria-label="$t('datasource.detail.removeImportedTable')"
                       @click="removeSelectedTable"
-                      ><Trash2 class="size-3.5"
-                    /></NButton>
+                    >
+                      <Trash2 class="size-3.5" />
+                    </NButton>
                   </div>
                 </div>
               </div>
-              <Grid
-                ><template #customName="{ row }"
-                  ><NInput
+              <Grid>
+                <template #customName="{ row }">
+                  <NInput
                     v-model:value="row.name"
                     size="small"
                     :placeholder="
                       $t('datasource.detail.aiFieldNamePlaceholder')
-                    " /></template
-                ><template #customType="{ row }"
-                  ><NInput
+                    "
+                  />
+                </template>
+                <template #customType="{ row }">
+                  <NInput
                     v-model:value="row.type"
                     size="small"
                     :placeholder="
                       $t('datasource.detail.aiFieldTypePlaceholder')
-                    " /></template
-                ><template #customComment="{ row }"
-                  ><NInput
+                    "
+                  />
+                </template>
+                <template #customComment="{ row }">
+                  <NInput
                     v-model:value="row.comment"
                     size="small"
                     :placeholder="
                       $t('datasource.detail.aiFieldCommentPlaceholder')
-                    " /></template
-              ></Grid>
+                    "
+                  />
+                </template>
+              </Grid>
             </section>
           </div>
           <NEmpty
             v-else
+            class="py-16"
             :description="
               activeTab === 'custom'
                 ? $t('datasource.detail.noImportedTables')
@@ -799,3 +880,13 @@ onMounted(loadDatasource);
     </div>
   </Page>
 </template>
+
+<style scoped>
+.c-stat-value {
+  font-family:
+    'Inter', 'SF Mono', 'JetBrains Mono', ui-monospace, 'Cascadia Mono',
+    'Cascadia Code', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+</style>

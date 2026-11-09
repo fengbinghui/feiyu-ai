@@ -18,7 +18,13 @@
     "deptId": "Department ID",
     "avatar": "Avatar URL",
     "roles": "Role Assignment",
-    "rolesPlaceholder": "Select roles"
+    "rolesPlaceholder": "Select roles",
+    "groups": {
+      "account": "Account",
+      "profile": "Profile",
+      "contact": "Contact",
+      "roles": "Roles"
+    }
   },
   "card": {
     "unnamed": "Untitled User",
@@ -40,6 +46,7 @@
     "updateTime": "Updated At"
   },
   "list": {
+    "description": "Manage user accounts, role assignment and login status",
     "tableTitle": "User Management",
     "keywordPlaceholder": "Username / name / phone / email",
     "statusPlaceholder": "All statuses",

@@ -8,6 +8,10 @@ import { $t } from '@vben/locales';
 
 import { useVbenForm, type VbenFormSchema } from '#/adapter/form';
 import {
+  formGroupDivider,
+  stripFormGroupFields,
+} from '#/views/shared/forms';
+import {
   userSexOptions,
   userStatusOptions,
 } from '#/views/shared/auth/options';
@@ -39,16 +43,11 @@ const drawerTitle = computed(() =>
 );
 
 const formSchema = computed<VbenFormSchema[]>(() => [
+  formGroupDivider('account', $t('users.form.groups.account')),
   {
     component: 'Input',
     fieldName: 'username',
     label: $t('users.form.username'),
-    rules: 'required',
-  },
-  {
-    component: 'Input',
-    fieldName: 'realName',
-    label: $t('users.form.realName'),
     rules: 'required',
   },
   {
@@ -59,6 +58,13 @@ const formSchema = computed<VbenFormSchema[]>(() => [
     },
     fieldName: 'password',
     label: $t('users.form.password'),
+  },
+  formGroupDivider('profile', $t('users.form.groups.profile')),
+  {
+    component: 'Input',
+    fieldName: 'realName',
+    label: $t('users.form.realName'),
+    rules: 'required',
   },
   {
     component: 'Select',
@@ -77,6 +83,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
     fieldName: 'sex',
     label: $t('users.form.gender'),
   },
+  formGroupDivider('contact', $t('users.form.groups.contact')),
   {
     component: 'Input',
     fieldName: 'phone',
@@ -95,9 +102,10 @@ const formSchema = computed<VbenFormSchema[]>(() => [
   {
     component: 'Input',
     fieldName: 'avatar',
-    formItemClass: 'sm:cols-span-2',
+    formItemClass: 'sm:col-span-2',
     label: $t('users.form.avatar'),
   },
+  formGroupDivider('roles', $t('users.form.groups.roles')),
   {
     component: 'Select',
     componentProps: {
@@ -109,7 +117,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
       placeholder: $t('users.form.rolesPlaceholder'),
     },
     fieldName: 'roleIds',
-    formItemClass: 'sm:cols-span-2',
+    formItemClass: 'sm:col-span-2',
     label: $t('users.form.roles'),
   },
 ]);
@@ -118,7 +126,7 @@ const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   schema: formSchema.value,
   showDefaultActions: false,
-  wrapperClass: 'grid-cols-1 px-3',
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4 px-1 pb-1 sm:grid-cols-2',
 });
 
 watch(
@@ -141,7 +149,7 @@ async function handleSave() {
   if (!values) {
     return;
   }
-  emit('save', values as UserFormModel);
+  emit('save', stripFormGroupFields(values as UserFormModel));
 }
 
 const [Drawer, drawerApi] = useVbenDrawer({

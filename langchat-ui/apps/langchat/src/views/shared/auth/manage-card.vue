@@ -2,22 +2,44 @@
   - © 2026 肥鱼AI. 版权所有.
   -->
 <script lang="ts" setup>
+import PageHeader from '#/components/PageHeader/index.vue';
+
 /**
- * 系统管理通用页面骨架：整页一张带边框的大卡片。
- * 顶部为自定义搜索区（无内置展开/折叠按钮），其余空间为表格区域。
+ * 系统管理通用页面骨架（风格 A）：
+ * 页头（标题 + 说明 + 右侧操作）→ 搜索筛选工具条 → 表格白卡。
  */
+interface Props {
+  description?: string;
+  title?: string;
+}
+
+withDefaults(defineProps<Props>(), {
+  description: '',
+  title: '',
+});
 </script>
 
 <template>
-  <div
-    class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
-  >
+  <div class="flex h-full min-h-0 flex-col gap-3">
+    <PageHeader :description="description" :title="title">
+      <template #actions>
+        <slot name="actions"></slot>
+      </template>
+    </PageHeader>
+
     <div
       v-if="$slots.search"
-      class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border px-4 py-4"
+      class="lc-surface shrink-0 px-4 py-3"
     >
-      <slot name="search"></slot>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <slot name="search"></slot>
+      </div>
     </div>
-    <slot></slot>
+
+    <div
+      class="lc-surface flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      <slot></slot>
+    </div>
   </div>
 </template>

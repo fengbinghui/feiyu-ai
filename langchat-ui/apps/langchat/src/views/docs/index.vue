@@ -619,90 +619,132 @@ function handleFailedDocsPreview(docsStatus: KnowledgeDocumentIndexStatus) {
 <template>
   <Page>
     <div
-      class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card p-4"
+      class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card"
     >
-      <div class="flex min-h-0 flex-1 flex-col gap-2">
+      <!-- 页头：知识库标题 / 说明 / 元信息 / 主操作 -->
+      <header class="border-b border-border/70 px-4 py-3.5 sm:px-5">
         <div
-          class="flex flex-col gap-2 xl:flex-row xl:items-start xl:justify-between"
+          class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
         >
-          <div class="min-w-0">
-            <div class="text-lg font-semibold text-foreground">
-              {{ knowledge?.name || $t('docs.title.list') }}
-            </div>
-            <div class="mt-1 text-sm leading-6 text-muted-foreground">
-              {{
-                knowledge?.description || $t('docs.list.noKnowledgeDescription')
-              }}
-            </div>
-            <div
-              class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-muted-foreground"
+          <div class="flex min-w-0 items-start gap-3">
+            <NButton
+              v-tippy="$t('common.actions.back')"
+              :aria-label="$t('common.actions.back')"
+              circle
+              quaternary
+              size="small"
+              @click="router.push('/knowledges')"
             >
-              <span>
-                {{
-                  $t('docs.list.createdAt', {
-                    time: formatDocsTimestamp(knowledge?.createTime),
-                  })
-                }}
-              </span>
-              <span>
-                {{
-                  $t('docs.list.updatedAt', {
-                    time: formatDocsTimestamp(knowledge?.updateTime),
-                  })
-                }}
-              </span>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <NButton type="primary" ghost @click="router.push('/knowledges')">
               <template #icon>
                 <ArrowLeft class="size-4" />
               </template>
-              {{ $t('common.actions.back') }}
+            </NButton>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h1
+                  class="truncate text-xl font-semibold tracking-tight text-foreground"
+                >
+                  {{ knowledge?.name || $t('docs.title.list') }}
+                </h1>
+                <span
+                  class="inline-flex items-center gap-1 rounded-md border border-primary/15 bg-primary/8 px-2 py-0.5 text-[10px] font-medium text-primary"
+                >
+                  {{
+                    activeTab === 'documents'
+                      ? $t('knowledge.tabs.documents')
+                      : $t('knowledge.tabs.settings')
+                  }}
+                </span>
+              </div>
+              <p
+                class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground"
+              >
+                {{
+                  knowledge?.description || $t('docs.list.noKnowledgeDescription')
+                }}
+              </p>
+              <div
+                class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground"
+              >
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="size-1 shrink-0 rounded-full bg-muted-foreground/50"></span>
+                  {{
+                    $t('docs.list.createdAt', {
+                      time: formatDocsTimestamp(knowledge?.createTime),
+                    })
+                  }}
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="size-1 shrink-0 rounded-full bg-muted-foreground/50"></span>
+                  {{
+                    $t('docs.list.updatedAt', {
+                      time: formatDocsTimestamp(knowledge?.updateTime),
+                    })
+                  }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <NButton
+              :disabled="!knowledgeId"
+              type="primary"
+              @click="openUploadPage"
+            >
+              <template #icon>
+                <Upload class="size-4" />
+              </template>
+              {{ $t('docs.actions.upload') }}
             </NButton>
           </div>
         </div>
+      </header>
 
-        <div class="mt-1 border-b border-border" role="tablist">
-          <div class="flex items-center gap-6">
-            <button
-              :aria-selected="activeTab === 'documents'"
-              :class="
-                activeTab === 'documents'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              "
-              class="relative inline-flex h-10 cursor-pointer items-center gap-2 border-b-2 px-0.5 text-sm font-medium transition-colors"
-              role="tab"
-              type="button"
-              @click="activeTab = 'documents'"
+      <!-- 选项卡：文档管理 / 知识库配置 -->
+      <div class="border-b border-border/70 px-3 pt-2.5 sm:px-4" role="tablist">
+        <div
+          class="inline-flex items-center gap-1 rounded-lg border border-border/70 bg-muted/30 p-1"
+        >
+          <button
+            :aria-selected="activeTab === 'documents'"
+            :class="
+              activeTab === 'documents'
+                ? 'border-primary/25 bg-card text-primary shadow-sm'
+                : 'border-transparent text-muted-foreground hover:bg-card/60 hover:text-foreground'
+            "
+            class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors"
+            role="tab"
+            type="button"
+            @click="activeTab = 'documents'"
+          >
+            <FileText class="size-3.5" />
+            {{ $t('knowledge.tabs.documents') }}
+            <span
+              class="rounded bg-muted px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground"
             >
-              <FileText class="size-4" />
-              {{ $t('knowledge.tabs.documents') }}
-              <span
-                class="rounded-md bg-muted px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground"
-              >
-                {{ statusSummary?.docsCount ?? 0 }}
-              </span>
-            </button>
-            <button
-              :aria-selected="activeTab === 'settings'"
-              :class="
-                activeTab === 'settings'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              "
-              class="relative inline-flex h-10 cursor-pointer items-center gap-2 border-b-2 px-0.5 text-sm font-medium transition-colors"
-              role="tab"
-              type="button"
-              @click="activeTab = 'settings'"
-            >
-              <SlidersHorizontal class="size-4" />
-              {{ $t('knowledge.tabs.settings') }}
-            </button>
-          </div>
+              {{ statusSummary?.docsCount ?? 0 }}
+            </span>
+          </button>
+          <button
+            :aria-selected="activeTab === 'settings'"
+            :class="
+              activeTab === 'settings'
+                ? 'border-primary/25 bg-card text-primary shadow-sm'
+                : 'border-transparent text-muted-foreground hover:bg-card/60 hover:text-foreground'
+            "
+            class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors"
+            role="tab"
+            type="button"
+            @click="activeTab = 'settings'"
+          >
+            <SlidersHorizontal class="size-3.5" />
+            {{ $t('knowledge.tabs.settings') }}
+          </button>
         </div>
+      </div>
+
+      <div class="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4">
 
         <template v-if="activeTab === 'documents'">
           <Grid class="min-h-0 flex-1 bg-transparent">
@@ -715,7 +757,11 @@ function handleFailedDocsPreview(docsStatus: KnowledgeDocumentIndexStatus) {
                   :placeholder="$t('docs.search.placeholder')"
                   style="width: 220px"
                   @keyup.enter="refreshDashboard"
-                />
+                >
+                  <template #prefix>
+                    <Search class="size-3.5 text-muted-foreground" />
+                  </template>
+                </NInput>
                 <NSelect
                   v-model:value="selectedDocStatus"
                   :options="statusFilterOptions"
@@ -753,21 +799,6 @@ function handleFailedDocsPreview(docsStatus: KnowledgeDocumentIndexStatus) {
                 >
                   <Trash2 class="size-3.5" />
                   {{ $t('docs.actions.batchDelete') }} ({{ selectedRowCount }})
-                </NButton>
-                <span
-                  v-if="selectedRowCount > 0"
-                  class="mx-0.5 h-4 w-px bg-border"
-                ></span>
-                <NButton
-                  :disabled="!knowledgeId"
-                  size="small"
-                  type="primary"
-                  @click="openUploadPage"
-                >
-                  <template #icon>
-                    <Upload class="size-3.5" />
-                  </template>
-                  {{ $t('docs.actions.upload') }}
                 </NButton>
               </div>
             </template>

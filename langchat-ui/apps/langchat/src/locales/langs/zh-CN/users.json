@@ -18,7 +18,13 @@
     "deptId": "部门 ID",
     "avatar": "头像地址",
     "roles": "角色分配",
-    "rolesPlaceholder": "请选择角色"
+    "rolesPlaceholder": "请选择角色",
+    "groups": {
+      "account": "账号信息",
+      "profile": "基本资料",
+      "contact": "联系方式",
+      "roles": "角色权限"
+    }
   },
   "card": {
     "unnamed": "未命名用户",
@@ -40,6 +46,7 @@
     "updateTime": "更新时间"
   },
   "list": {
+    "description": "维护平台用户账号、角色分配与登录状态",
     "tableTitle": "用户管理",
     "keywordPlaceholder": "用户名 / 姓名 / 手机号 / 邮箱",
     "statusPlaceholder": "全部状态",

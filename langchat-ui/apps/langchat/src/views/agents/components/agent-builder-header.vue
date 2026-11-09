@@ -16,7 +16,7 @@ import {
 } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { NButton, NPopover, NTag } from 'naive-ui';
+import { NButton, NPopover } from 'naive-ui';
 
 import LcIconDisplay from '#/components/LcIcon/display.vue';
 import LcStatusTag from '#/components/LcStatusTag/index.vue';
@@ -111,7 +111,7 @@ function handlePublish() {
 <template>
   <div class="rounded-xl border border-border bg-card">
     <!-- 顶部行 -->
-    <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+    <div class="flex items-center justify-between gap-3 px-4 py-3">
       <div class="flex min-w-0 items-center gap-3">
         <NButton
           v-tippy="$t('common.actions.back')"
@@ -129,13 +129,15 @@ function handlePublish() {
         <LcIconDisplay
           :icon="appIcon"
           fallback-icon="lucide:bot"
-          :size="40"
-          class="shrink-0 rounded-[10px] border-border/80 bg-background"
+          :size="44"
+          class="shrink-0 rounded-xl border-border/80 bg-background"
         />
 
         <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <div class="truncate text-lg font-semibold text-foreground">
+          <div class="flex flex-wrap items-center gap-2">
+            <div
+              class="truncate text-xl font-semibold tracking-tight text-foreground"
+            >
               {{ pageTitle }}
             </div>
             <LcStatusTag
@@ -144,9 +146,9 @@ function handlePublish() {
             />
           </div>
           <div
-            class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-4 text-muted-foreground"
+            class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-4 text-muted-foreground"
           >
-            <span class="max-w-[200px] truncate">
+            <span class="max-w-[220px] truncate">
               {{ summary || $t('agents.header.untitled') }}
             </span>
             <span class="size-0.5 shrink-0 rounded-full bg-muted-foreground/40"></span>
@@ -181,39 +183,39 @@ function handlePublish() {
           </template>
           <div class="w-60 px-1">
             <div
-              class="mb-2 flex flex-col gap-1.5 rounded-md bg-muted/30 px-3 py-2.5"
+              class="mb-2 flex flex-col gap-1.5 rounded-lg border border-border/70 bg-muted/25 px-3 py-2.5"
             >
               <div class="flex items-center justify-between">
                 <span class="text-[11px] text-muted-foreground">
                   {{ $t('agents.header.createdBy') }}
                 </span>
-                <NTag :bordered="false" round size="small" type="info">
+                <span class="text-[11px] font-medium text-foreground">
                   {{ creator || '--' }}
-                </NTag>
+                </span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-[11px] text-muted-foreground">
                   {{ $t('agents.header.createdAt') }}
                 </span>
-                <NTag :bordered="false" round size="small">
+                <span class="text-[11px] tabular-nums text-foreground">
                   {{ createTimeText }}
-                </NTag>
+                </span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-[11px] text-muted-foreground">
                   {{ $t('agents.header.lastModified') }}
                 </span>
-                <NTag :bordered="false" round size="small">
+                <span class="text-[11px] tabular-nums text-foreground">
                   {{ updateTimeText }}
-                </NTag>
+                </span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-[11px] text-muted-foreground">
                   {{ $t('agents.header.modifiedBy') }}
                 </span>
-                <NTag :bordered="false" round size="small" type="info">
+                <span class="text-[11px] font-medium text-foreground">
                   {{ updater || '--' }}
-                </NTag>
+                </span>
               </div>
             </div>
             <div class="flex flex-col gap-2">
@@ -241,23 +243,27 @@ function handlePublish() {
 
     <!-- 选项切换条 -->
     <div
-      class="flex w-full items-center gap-2 overflow-x-auto border-t border-border px-3 py-1.5"
+      class="flex w-full items-center gap-1 overflow-x-auto border-t border-border/70 px-3 py-2"
     >
-      <button
-        v-for="item in tabs"
-        :key="item.key"
-        :class="
-          tab === item.key
-            ? 'border-primary/50 bg-primary/8 text-primary'
-            : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-muted/40 hover:text-foreground'
-        "
-        class="inline-flex cursor-pointer shrink-0 items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition-colors"
-        type="button"
-        @click="emit('update:tab', item.key)"
+      <div
+        class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border/70 bg-muted/30 p-1"
       >
-        <component :is="resolveTabIcon(item.key)" class="size-3.5" />
-        {{ item.label }}
-      </button>
+        <button
+          v-for="item in tabs"
+          :key="item.key"
+          :class="
+            tab === item.key
+              ? 'border-primary/25 bg-card text-primary shadow-sm'
+              : 'border-transparent text-muted-foreground hover:bg-card/60 hover:text-foreground'
+          "
+          class="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors"
+          type="button"
+          @click="emit('update:tab', item.key)"
+        >
+          <component :is="resolveTabIcon(item.key)" class="size-3.5" />
+          {{ item.label }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

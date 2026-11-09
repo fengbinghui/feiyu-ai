@@ -19,7 +19,12 @@
     "isShow": "Visible",
     "isKeepalive": "Keep Alive",
     "isExternal": "External Link",
-    "isDisabled": "Disabled"
+    "isDisabled": "Disabled",
+    "groups": {
+      "basic": "Basic Information",
+      "route": "Route Configuration",
+      "status": "Status"
+    }
   },
   "card": {
     "unnamed": "Untitled Menu",
@@ -43,6 +48,7 @@
     "updateTime": "Updated At"
   },
   "list": {
+    "description": "Configure menu structure, routes and button permissions",
     "tableTitle": "Menu Management",
     "keywordPlaceholder": "Menu name / path / permission key / component path",
     "typePlaceholder": "All types",

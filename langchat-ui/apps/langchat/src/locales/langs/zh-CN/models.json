@@ -46,6 +46,7 @@
     "baseUrl": "地址"
   },
   "list": {
+    "description": "统一管理模型供应商、模型类型与连接配置",
     "title": "模型中心",
     "allProviders": "全部供应商",
     "allTypes": "全部模型",
@@ -75,7 +76,12 @@
     "baseUrlPlaceholder": "例如：https://api.openai.com/v1",
     "dimension": "向量维度",
     "dimensionPlaceholder": "请选择模型输出的向量维度",
-    "timeout": "timeout（秒）"
+    "timeout": "timeout（秒）",
+    "groups": {
+      "basic": "基础信息",
+      "connection": "连接配置",
+      "params": "参数配置"
+    }
   },
   "messages": {
     "created": "模型已创建",

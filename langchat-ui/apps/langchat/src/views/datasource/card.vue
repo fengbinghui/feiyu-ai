@@ -63,14 +63,14 @@ const metaItems = computed(() => [
   <LcCard
     :icon="datasourceTypeMeta.icon"
     :meta-items="metaItems"
-    class="h-full cursor-pointer"
+    class="c-datasource-card h-full cursor-pointer"
     hoverable
     @click="emit('detail', item)"
   >
     <template #header>
       <div class="min-w-0">
         <div
-          class="truncate text-sm font-semibold text-foreground group-hover:text-primary"
+          class="truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary"
         >
           {{ item.name || $t('datasource.card.unnamed') }}
         </div>
@@ -78,26 +78,28 @@ const metaItems = computed(() => [
     </template>
 
     <template #description>
-      <p class="text-[11px] text-muted-foreground line-clamp-2">
+      <p class="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
         {{ item.remark || connectionSummary }}
       </p>
     </template>
 
     <template #header-extra>
       <LcStatusTag
-        :label="item.enabled ? $t('common.status.enabled') : $t('common.status.disabled')"
+        :label="
+          item.enabled ? $t('common.status.enabled') : $t('common.status.disabled')
+        "
         :type="item.enabled ? 'success' : 'default'"
       />
     </template>
 
     <template #footer-extra>
-      <div class="truncate whitespace-nowrap text-[11px] text-muted-foreground">
+      <div class="truncate whitespace-nowrap text-[10px] text-muted-foreground">
         {{ formatRelativeTime(item.updateTime) }}
       </div>
     </template>
 
     <template #footer>
-      <NSpace :size="4">
+      <NSpace :size="2">
         <NButton
           v-tippy="$t('common.actions.viewDetails')"
           circle
@@ -133,3 +135,17 @@ const metaItems = computed(() => [
     </template>
   </LcCard>
 </template>
+
+<style scoped>
+.c-datasource-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.c-datasource-card:hover {
+  transform: translateY(-2px);
+}
+</style>

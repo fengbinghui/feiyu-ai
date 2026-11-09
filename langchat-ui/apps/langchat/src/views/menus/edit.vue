@@ -7,6 +7,10 @@ import { useVbenDrawer } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
 import { useVbenForm, type VbenFormSchema } from '#/adapter/form';
+import {
+  formGroupDivider,
+  stripFormGroupFields,
+} from '#/views/shared/forms';
 import { menuTypeOptions } from '#/views/shared/auth/options';
 
 interface Props {
@@ -32,6 +36,7 @@ const drawerTitle = computed(() =>
 );
 
 const formSchema = computed<VbenFormSchema[]>(() => [
+  formGroupDivider('basic', $t('menus.form.groups.basic')),
   {
     component: 'Input',
     fieldName: 'name',
@@ -69,6 +74,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
     fieldName: 'orderNo',
     label: $t('menus.form.orderNo'),
   },
+  formGroupDivider('route', $t('menus.form.groups.route')),
   {
     component: 'Input',
     fieldName: 'path',
@@ -89,6 +95,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
     fieldName: 'component',
     label: $t('menus.form.component'),
   },
+  formGroupDivider('status', $t('menus.form.groups.status')),
   {
     component: 'Switch',
     fieldName: 'isShow',
@@ -115,7 +122,7 @@ const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   schema: formSchema.value,
   showDefaultActions: false,
-  wrapperClass: 'grid-cols-1 px-3',
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4 px-1 pb-1 sm:grid-cols-2',
 });
 
 watch(
@@ -138,7 +145,7 @@ async function handleSave() {
   if (!values) {
     return;
   }
-  emit('save', values as Partial<AigcMenu>);
+  emit('save', stripFormGroupFields(values as Partial<AigcMenu>));
 }
 
 const [Drawer, drawerApi] = useVbenDrawer({

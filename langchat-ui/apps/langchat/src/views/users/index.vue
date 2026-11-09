@@ -6,11 +6,12 @@ import type { AigcUser, AigcUserRole } from '#/api/auth/user';
 import { computed, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
-import { SquarePen, Trash2 } from '@vben/icons';
+import { Plus, RefreshCcw, Search } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { NButton, NInput, NSelect, NTag } from 'naive-ui';
 
+import LcStatusTag from '#/components/LcStatusTag/index.vue';
 import { dialog, message } from '#/adapter/naive';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { roleApi } from '#/api/auth/role';
@@ -131,8 +132,7 @@ const gridColumns = computed<VxeGridPropTypes.Columns<AigcUser>>(() => [
     field: 'status',
     title: $t('users.columns.status'),
     width: 100,
-    formatter: ({ cellValue }: { cellValue: number | string }) =>
-      findAuthOptionLabel(userStatusOptions(), cellValue),
+    slots: { default: 'statusColumn' },
   },
   {
     field: 'sex',
@@ -169,7 +169,7 @@ const gridColumns = computed<VxeGridPropTypes.Columns<AigcUser>>(() => [
     fixed: 'right',
     slots: { default: 'actionColumn' },
     title: $t('common.labels.actions'),
-    width: 110,
+    width: 150,
   },
 ]);
 
@@ -186,26 +186,13 @@ const [Grid, gridApi] = useVbenVxeGrid<AigcUser>({
         query: queryUsers,
       },
     },
-    toolbarConfig: {
-      refresh: true,
-      zoom: true,
-    },
   },
-  tableTitle: $t('users.list.tableTitle'),
 });
 
 watch(
   gridColumns,
   (columns) => {
     gridApi.setGridOptions({ columns });
-  },
-  { immediate: true },
-);
-
-watch(
-  () => $t('users.list.tableTitle'),
-  (value) => {
-    gridApi.setState({ tableTitle: value });
   },
   { immediate: true },
 );
@@ -308,47 +295,70 @@ async function syncUserRoles(userId: string, nextRoleIds: string[]) {
 
 <template>
   <Page>
-    <ManageCard>
+    <ManageCard
+      :description="$t('users.list.description')"
+      :title="$t('users.list.tableTitle')"
+    >
+      <template #actions>
+        <NButton secondary @click="() => gridApi.reload()">
+          <template #icon>
+            <RefreshCcw class="size-4" />
+          </template>
+          {{ $t('common.actions.refresh') }}
+        </NButton>
+        <NButton type="primary" @click="openCreate">
+          <template #icon>
+            <Plus class="size-4" />
+          </template>
+          {{ $t('users.actions.create') }}
+        </NButton>
+      </template>
+
       <template #search>
         <div class="flex items-center gap-2">
-          <span class="shrink-0 text-sm text-muted-foreground">{{
-            $t('common.labels.keyword')
-          }}</span>
+          <span
+            class="shrink-0 text-xs font-medium text-muted-foreground"
+          >{{ $t('common.labels.keyword') }}</span>
           <NInput
             v-model:value="draftKeyword"
+            class="lc-filter-input w-[280px]"
             clearable
             :placeholder="$t('users.list.keywordPlaceholder')"
-            style="width: 240px"
             @keyup.enter="handleSearch"
-          />
+          >
+            <template #prefix>
+              <Search class="size-4 text-muted-foreground" />
+            </template>
+          </NInput>
         </div>
         <div class="flex items-center gap-2">
-          <span class="shrink-0 text-sm text-muted-foreground">{{
-            $t('common.labels.status')
-          }}</span>
+          <span
+            class="shrink-0 text-xs font-medium text-muted-foreground"
+          >{{ $t('common.labels.status') }}</span>
           <NSelect
             v-model:value="draftStatus"
             :options="userStatusOptions()"
             clearable
             :placeholder="$t('users.list.statusPlaceholder')"
-            style="width: 180px"
+            :style="{ width: '160px' }"
           />
         </div>
         <div class="ml-auto flex items-center gap-2">
-          <NButton @click="handleReset">{{ $t('common.actions.reset') }}</NButton>
+          <NButton secondary @click="handleReset">
+            {{ $t('common.actions.reset') }}
+          </NButton>
           <NButton type="primary" @click="handleSearch">
-{{
-            $t('common.actions.search')
-          }}
-</NButton>
+            {{ $t('common.actions.search') }}
+          </NButton>
         </div>
       </template>
 
-      <Grid class="min-h-0 flex-1" grid-class="px-4 pb-4 pt-3">
-        <template #toolbar-tools>
-          <NButton type="primary" @click="openCreate">
-            {{ $t('users.actions.create') }}
-          </NButton>
+      <Grid class="min-h-0 flex-1" grid-class="px-3 pb-3 pt-2">
+        <template #statusColumn="{ row }">
+          <LcStatusTag
+            :label="findAuthOptionLabel(userStatusOptions(), row.status)"
+            :type="row.status === 1 ? 'success' : 'error'"
+          />
         </template>
 
         <template #roleColumn="{ row }">
@@ -373,30 +383,13 @@ async function syncUserRoles(userId: string, nextRoleIds: string[]) {
         </template>
 
         <template #actionColumn="{ row }">
-          <div class="flex items-center justify-center gap-1">
-            <NButton
-              v-tippy="$t('users.list.editUser')"
-              circle
-              quaternary
-              size="small"
-              type="primary"
-              @click="openEdit(row)"
-            >
-              <template #icon>
-                <SquarePen class="size-4" />
-              </template>
+          <div class="lc-row-actions">
+            <NButton size="small" text type="primary" @click="openEdit(row)">
+              {{ $t('common.actions.edit') }}
             </NButton>
-            <NButton
-              v-tippy="$t('users.list.deleteUser')"
-              circle
-              quaternary
-              size="small"
-              type="error"
-              @click="handleDelete(row)"
-            >
-              <template #icon>
-                <Trash2 class="size-4" />
-              </template>
+            <span class="h-3 w-px bg-border"></span>
+            <NButton size="small" text type="error" @click="handleDelete(row)">
+              {{ $t('common.actions.delete') }}
             </NButton>
           </div>
         </template>

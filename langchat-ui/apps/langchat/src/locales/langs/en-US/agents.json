@@ -44,12 +44,18 @@
     "appNamePlaceholder": "Enter app name",
     "appDescription": "App Description",
     "appDescriptionPlaceholder": "Enter app description",
-    "selectModel": "Select a model"
+    "selectModel": "Select a model",
+    "groups": {
+      "basic": "Basic Information",
+      "model": "Model & Status",
+      "content": "Description"
+    }
   },
   "card": {
     "unnamed": "Untitled Agent"
   },
   "list": {
+    "description": "Create, configure and publish enterprise AI agent apps",
     "searchPlaceholder": "Search by agent name or status",
     "baseConfigTitle": "App Base Config"
   },

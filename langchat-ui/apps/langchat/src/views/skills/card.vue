@@ -82,14 +82,14 @@ function formatSize(size?: number) {
     :icon-component="Blocks"
     :icon-size="36"
     :meta-items="metaItems"
-    class="cursor-pointer"
+    class="c-skill-card h-full cursor-pointer"
     hoverable
     @click="emit('edit', item)"
   >
     <template #header>
       <div class="min-w-0">
         <div
-          class="flex items-center gap-1.5 truncate text-[13px] font-semibold text-foreground transition-colors group-hover:text-primary"
+          class="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground transition-colors group-hover:text-primary"
         >
           {{ title }}
         </div>
@@ -97,20 +97,22 @@ function formatSize(size?: number) {
     </template>
 
     <template #description>
-      <p class="text-[11px] text-muted-foreground line-clamp-2">
+      <p class="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
         {{ item.description || $t('skills.empty.noDescription') }}
       </p>
     </template>
 
     <template #header-extra>
       <LcStatusTag
-        :label="item.enabled ? $t('skills.card.enabled') : $t('skills.card.disabled')"
+        :label="
+          item.enabled ? $t('skills.card.enabled') : $t('skills.card.disabled')
+        "
         :type="item.enabled ? 'success' : 'default'"
       />
     </template>
 
     <template #footer-extra>
-      <div class="truncate whitespace-nowrap text-[9px] text-muted-foreground">
+      <div class="truncate whitespace-nowrap text-[10px] text-muted-foreground">
         {{ formatRelativeTime(item.updateTime) }}
       </div>
     </template>
@@ -125,7 +127,7 @@ function formatSize(size?: number) {
           size="small"
           @click.stop="emit('edit', item)"
         >
-          <SquarePen class="size-3" />
+          <SquarePen class="size-3.5" />
         </NButton>
         <NButton
           v-tippy="
@@ -150,7 +152,7 @@ function formatSize(size?: number) {
           size="small"
           @click.stop="handleDownload(item)"
         >
-          <Download class="size-3" />
+          <Download class="size-3.5" />
         </NButton>
         <NButton
           v-tippy="$t('common.actions.delete')"
@@ -161,9 +163,23 @@ function formatSize(size?: number) {
           type="error"
           @click.stop="emit('delete', item)"
         >
-          <Trash2 class="size-3" />
+          <Trash2 class="size-3.5" />
         </NButton>
       </NSpace>
     </template>
   </LcCard>
 </template>
+
+<style scoped>
+.c-skill-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.c-skill-card:hover {
+  transform: translateY(-2px);
+}
+</style>

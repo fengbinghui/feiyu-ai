@@ -7,11 +7,16 @@ import type { AigcRole } from '#/api/auth/role';
 import { computed, ref, watch } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
+import { Search } from '@vben/icons';
 import { $t } from '@vben/locales';
 
 import { NButton, NInput, NTree } from 'naive-ui';
 
 import { useVbenForm, type VbenFormSchema } from '#/adapter/form';
+import {
+  formGroupDivider,
+  stripFormGroupFields,
+} from '#/views/shared/forms';
 
 interface RoleFormModel extends Partial<AigcRole> {
   menuIds?: string[];
@@ -46,6 +51,7 @@ const checkedMenuIds = computed(() => roleModel.value.menuIds ?? []);
 const treeData = computed(() => props.menuTree as unknown as TreeOption[]);
 
 const formSchema = computed<VbenFormSchema[]>(() => [
+  formGroupDivider('basic', $t('roles.form.groups.basic')),
   {
     component: 'Input',
     fieldName: 'name',
@@ -66,7 +72,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
       type: 'textarea',
     },
     fieldName: 'description',
-    formItemClass: 'sm:cols-span-2',
+    formItemClass: 'sm:col-span-2',
     label: $t('roles.form.description'),
   },
 ]);
@@ -75,7 +81,7 @@ const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   schema: formSchema.value,
   showDefaultActions: false,
-  wrapperClass: 'grid-cols-1 px-3',
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4 px-1 sm:grid-cols-2',
 });
 
 function emitClose(withCancel: boolean = true) {
@@ -110,7 +116,7 @@ async function handleSave() {
     return;
   }
   emit('save', {
-    ...(values as RoleFormModel),
+    ...stripFormGroupFields(values as RoleFormModel),
     menuIds: roleModel.value.menuIds,
   });
 }
@@ -180,8 +186,11 @@ watch(
       <Form />
 
       <div>
-        <div class="mb-2 text-sm font-medium text-foreground">
-          {{ $t('roles.form.menuAuth') }}
+        <div class="mt-1 mb-2 flex items-center gap-3">
+          <div class="text-[12px] font-semibold text-muted-foreground">
+            {{ $t('roles.form.menuAuth') }}
+          </div>
+          <div class="h-px flex-1 bg-border/70"></div>
         </div>
         <div class="space-y-3">
           <div
@@ -190,9 +199,14 @@ watch(
             <div class="w-full md:max-w-sm">
               <NInput
                 v-model:value="menuKeyword"
+                class="lc-filter-input"
                 clearable
                 :placeholder="$t('roles.form.menuSearchPlaceholder')"
-              />
+              >
+                <template #prefix>
+                  <Search class="size-4 text-muted-foreground" />
+                </template>
+              </NInput>
             </div>
             <div class="flex items-center gap-2">
               <NButton secondary size="small" @click="toggleAllMenus">
@@ -204,7 +218,7 @@ watch(
             </div>
           </div>
 
-          <div class="rounded-xl border border-border bg-muted/30 p-2">
+          <div class="rounded-lg border border-border/80 bg-muted/20 p-2">
             <div class="max-h-[360px] overflow-y-auto pr-1">
               <NTree
                 block-line

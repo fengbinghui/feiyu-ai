@@ -19,7 +19,12 @@
     "isShow": "是否显示",
     "isKeepalive": "是否缓存",
     "isExternal": "是否外链",
-    "isDisabled": "是否禁用"
+    "isDisabled": "是否禁用",
+    "groups": {
+      "basic": "基础信息",
+      "route": "路由配置",
+      "status": "状态设置"
+    }
   },
   "card": {
     "unnamed": "未命名菜单",
@@ -43,6 +48,7 @@
     "updateTime": "更新时间"
   },
   "list": {
+    "description": "配置系统菜单结构、路由与按钮权限",
     "tableTitle": "菜单管理",
     "keywordPlaceholder": "菜单名称 / 路径 / 权限标识 / 组件路径",
     "typePlaceholder": "全部类型",

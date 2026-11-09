@@ -46,6 +46,7 @@
     "baseUrl": "Endpoint"
   },
   "list": {
+    "description": "Manage model providers, model types and connection settings",
     "title": "Model Center",
     "allProviders": "All Providers",
     "allTypes": "All Models",
@@ -75,7 +76,12 @@
     "baseUrlPlaceholder": "e.g. https://api.openai.com/v1",
     "dimension": "Vector Dimension",
     "dimensionPlaceholder": "Select the model output dimension",
-    "timeout": "Timeout (s)"
+    "timeout": "Timeout (s)",
+    "groups": {
+      "basic": "Basic Information",
+      "connection": "Connection",
+      "params": "Parameters"
+    }
   },
   "messages": {
     "created": "Model created",

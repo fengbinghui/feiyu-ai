@@ -5,7 +5,7 @@ import {computed, onMounted, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 
 import {Page} from '@vben/common-ui';
-import {Plus, RefreshCcw} from '@vben/icons';
+import {Database, Plus, RefreshCcw} from '@vben/icons';
 import {$t} from '@vben/locales';
 
 import {NButton, NPagination} from 'naive-ui';
@@ -13,7 +13,6 @@ import {NButton, NPagination} from 'naive-ui';
 import {dialog, message} from '#/adapter/naive';
 import {indexKnowledgeApi} from '#/api/aigc/docs';
 import {knowledgeApi} from '#/api/aigc/knowledge';
-import LcActionCard from '#/components/LcActionCard/index.vue';
 import LcListCard from '#/components/LcListCard/index.vue';
 import {buildKnowledgeDocsRouteLocation} from '#/views/docs/shared';
 import {useAigcLookups} from '#/views/shared/aigc/lookups';
@@ -69,10 +68,6 @@ const pagedItems = computed(() => {
 watch([keyword, selectedTag], () => {
   currentPage.value = 1;
 });
-const actionItems = computed(() => [
-  { key: 'refresh', label: $t('common.actions.refreshList'), icon: RefreshCcw },
-  { key: 'create', label: $t('knowledge.actions.create'), icon: Plus },
-]);
 
 function jumpToKnowledge(knowledgeId?: string) {
   void router.push(buildKnowledgeDocsRouteLocation(knowledgeId));
@@ -99,16 +94,6 @@ function handleCreate() {
 function handleEdit(item: AigcKnowledge) {
   currentItem.value = item;
   showEdit.value = true;
-}
-
-function handleAction(action: { key: string }) {
-  if (action.key === 'refresh') {
-    void initializePage();
-    return;
-  }
-  if (action.key === 'create') {
-    handleCreate();
-  }
 }
 
 async function handleDelete(item: AigcKnowledge) {
@@ -163,7 +148,58 @@ onMounted(initializePage);
 
 <template>
   <Page>
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-3">
+      <!-- 页头：标题 / 一行说明 / 右侧主操作 -->
+      <section class="rounded-xl border border-border bg-card px-4 py-3.5 sm:px-5">
+        <div
+          class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div class="flex min-w-0 items-start gap-3">
+            <span
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/8 text-primary"
+            >
+              <Database class="size-4.5" />
+            </span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h1
+                  class="text-xl font-semibold tracking-tight text-foreground"
+                >
+                  {{ $t('menu.dynamic.knowledges') }}
+                </h1>
+                <span
+                  class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
+                >
+                  {{ $t('common.labels.count', { count: filteredItems.length }) }}
+                </span>
+              </div>
+              <p class="mt-1 text-sm leading-6 text-muted-foreground">
+                {{ $t('knowledge.settings.description') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <NButton
+              v-tippy="$t('common.actions.refreshList')"
+              secondary
+              @click="initializePage"
+            >
+              <template #icon>
+                <RefreshCcw class="size-4" />
+              </template>
+              {{ $t('common.actions.refresh') }}
+            </NButton>
+            <NButton type="primary" @click="handleCreate">
+              <template #icon>
+                <Plus class="size-4" />
+              </template>
+              {{ $t('knowledge.actions.create') }}
+            </NButton>
+          </div>
+        </div>
+      </section>
+
       <LcListCard
         :active-tag="selectedTag"
         :items="pagedItems"
@@ -174,14 +210,6 @@ onMounted(initializePage);
         @update:active-tag="selectedTag = $event"
         @update:search-value="keyword = $event"
       >
-        <template #leading-card>
-          <LcActionCard
-            :actions="actionItems"
-            :description="$t('common.messages.quickActionsDescription')"
-            :title="$t('knowledge.quickActions.title')"
-            @action="handleAction"
-          />
-        </template>
         <template #item="{ item }">
           <KnowledgeCard
             :item="item"
@@ -198,7 +226,10 @@ onMounted(initializePage);
         </template>
       </LcListCard>
 
-      <div v-if="filteredItems.length > pageSize" class="flex justify-end">
+      <div
+        v-if="filteredItems.length > pageSize"
+        class="flex justify-end rounded-xl border border-border bg-card px-4 py-2.5"
+      >
         <NPagination
           v-model:page="currentPage"
           v-model:page-size="pageSize"
@@ -219,3 +250,4 @@ onMounted(initializePage);
     </div>
   </Page>
 </template>
+

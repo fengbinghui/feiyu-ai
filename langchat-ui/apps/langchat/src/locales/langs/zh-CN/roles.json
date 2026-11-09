@@ -14,7 +14,10 @@
     "menuAuth": "菜单授权",
     "menuSearchPlaceholder": "搜索菜单名称",
     "grantAll": "全部授权",
-    "clearAll": "清空授权"
+    "clearAll": "清空授权",
+    "groups": {
+      "basic": "基本信息"
+    }
   },
   "card": {
     "unnamed": "未命名角色",
@@ -33,6 +36,7 @@
     "updateTime": "更新时间"
   },
   "list": {
+    "description": "维护角色信息与菜单授权，控制不同岗位的可见范围",
     "tableTitle": "角色管理",
     "keywordPlaceholder": "角色名称 / 编码 / 描述",
     "editRole": "编辑角色",

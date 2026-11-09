@@ -18,6 +18,10 @@ setupVbenVxeTable({
           resizable: true,
         },
         minHeight: 180,
+        // 列表页统一开启行 hover，配合 styles/index.scss 的柔和底色
+        rowConfig: {
+          isHover: true,
+        },
         formConfig: {
           // 全局禁用vxe-table的表单配置，使用formOptions
           enabled: false,

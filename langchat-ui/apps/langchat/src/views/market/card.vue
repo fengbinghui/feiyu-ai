@@ -3,6 +3,7 @@ import type { AigcAgent } from '#/api/aigc/agent';
 import type { LabelOption } from '#/views/shared/aigc/options';
 
 import { MessageCircle } from '@vben/icons';
+import { $t } from '@vben/locales';
 
 import { NButton } from 'naive-ui';
 
@@ -23,20 +24,42 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <AigcAgentCard
-    :item="item"
-    :knowledge-options="knowledgeOptions"
-    :model-options="modelOptions"
-    :skill-options="skillOptions"
-    @click="emit('enter', $event)"
-  >
-    <template #footer>
-      <NButton size="small" type="primary" @click.stop="emit('enter', item)">
-        <template #icon>
-          <MessageCircle class="size-3.5" />
-        </template>
-        {{ $t('market.enterApp') }}
-      </NButton>
-    </template>
-  </AigcAgentCard>
+  <div class="market-agent-card h-full">
+    <AigcAgentCard
+      :item="item"
+      :knowledge-options="knowledgeOptions"
+      :model-options="modelOptions"
+      :skill-options="skillOptions"
+      @click="emit('enter', $event)"
+    >
+      <template #footer>
+        <NButton
+          class="market-enter-btn"
+          size="small"
+          type="primary"
+          @click.stop="emit('enter', item)"
+        >
+          <template #icon>
+            <MessageCircle class="size-3.5" />
+          </template>
+          {{ $t('market.enterApp') }}
+        </NButton>
+      </template>
+    </AigcAgentCard>
+  </div>
 </template>
+
+<style scoped>
+.market-agent-card :deep(.lc-card) {
+  min-height: 196px;
+}
+
+.market-agent-card :deep(.lc-card:hover) {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.market-enter-btn {
+  min-width: 84px;
+  border-radius: calc(var(--radius) * 0.85);
+}
+</style>

@@ -12,6 +12,10 @@ import LcIcon from '#/components/LcIcon/index.vue';
 import {
   agentStatusOptions,
 } from '#/views/shared/aigc/options';
+import {
+  formGroupDivider,
+  stripFormGroupFields,
+} from '#/views/shared/forms';
 
 interface Props {
   modelOptions: LabelOption[];
@@ -37,6 +41,7 @@ const drawerTitle = computed(() =>
 );
 
 const formSchema = computed<VbenFormSchema[]>(() => [
+  formGroupDivider('basic', $t('agents.form.groups.basic')),
   {
     component: 'Input',
     fieldName: 'agentName',
@@ -52,10 +57,11 @@ const formSchema = computed<VbenFormSchema[]>(() => [
       size: 64,
     },
     fieldName: 'icon',
-    formItemClass: 'sm:cols-span-2',
+    formItemClass: 'sm:col-span-2',
     label: $t('agents.form.appIcon'),
     modelPropName: 'modelValue',
   },
+  formGroupDivider('model', $t('agents.form.groups.model')),
   {
     component: 'Select',
     componentProps: {
@@ -74,6 +80,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
     label: $t('agents.form.reasoningModel'),
     rules: 'selectRequired',
   },
+  formGroupDivider('content', $t('agents.form.groups.content')),
   {
     component: 'Input',
     componentProps: {
@@ -82,7 +89,7 @@ const formSchema = computed<VbenFormSchema[]>(() => [
       type: 'textarea',
     },
     fieldName: 'description',
-    formItemClass: 'sm:cols-span-2',
+    formItemClass: 'sm:col-span-2',
     label: $t('agents.form.description'),
   },
 ]);
@@ -91,7 +98,7 @@ const [Form, formApi] = useVbenForm({
   layout: 'vertical',
   schema: formSchema.value,
   showDefaultActions: false,
-  wrapperClass: 'grid-cols-1 px-3',
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4 px-1 pb-1 sm:grid-cols-2',
 });
 
 watch(
@@ -114,7 +121,7 @@ async function handleSave() {
   if (!values) {
     return;
   }
-  const payload = values as Record<string, any>;
+  const payload = stripFormGroupFields(values as Record<string, any>);
   const normalizedIcon = String(payload.icon || '').trim();
   emit('save', {
     ...payload,

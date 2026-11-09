@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type {AigcModel} from '#/api/aigc/model';
+import type { AigcModel } from '#/api/aigc/model';
 
 import { computed, onMounted, ref } from 'vue';
 
@@ -7,13 +7,25 @@ import { Page } from '@vben/common-ui';
 import { Download, ImagePlus, Sparkles } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import {NButton, NForm, NFormItem, NInput, NSelect, NSlider, NSpin,} from 'naive-ui';
+import {
+  NButton,
+  NForm,
+  NFormItem,
+  NInput,
+  NSelect,
+  NSlider,
+  NSpin,
+} from 'naive-ui';
 
-import {ResizableHandle, ResizablePanel, ResizablePanelGroup,} from '@vben-core/shadcn-ui';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@vben-core/shadcn-ui';
 
-import {message} from '#/adapter/naive';
-import {generateImage} from '#/api/aigc/image';
-import {modelApi} from '#/api/aigc/model';
+import { message } from '#/adapter/naive';
+import { generateImage } from '#/api/aigc/image';
+import { modelApi } from '#/api/aigc/model';
 import ModelSelector from '#/components/ModelSelector/index.vue';
 
 const loading = ref(false);
@@ -136,138 +148,160 @@ onMounted(loadModels);
 </script>
 
 <template>
-  <Page>
-    <div class="flex h-full min-h-full min-w-0 w-full flex-col gap-2">
-      <div
-        class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between"
-      >
-        <div>
-          <div class="text-lg font-semibold text-foreground">
-            {{ $t('studio.imageGeneration.title') }}
-          </div>
-          <div class="mt-1 text-sm text-muted-foreground">
-            {{ $t('studio.imageGeneration.description') }}
-          </div>
-        </div>
-      </div>
-
+  <Page
+    content-class="p-4"
+    :description="$t('studio.imageGeneration.description')"
+    header-class="px-4 py-3.5"
+    :title="$t('studio.imageGeneration.title')"
+  >
+    <div class="flex h-full min-h-0 min-w-0 w-full flex-col">
       <ResizablePanelGroup class="min-h-0 flex-1" direction="horizontal">
         <!-- 左侧配置 -->
-        <ResizablePanel :default-size="30" :min-size="20">
+        <ResizablePanel :default-size="30" :min-size="22">
           <div
-            class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-card p-4"
+            class="flex h-full min-h-0 flex-col rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
           >
-            <NForm :show-label="true" label-placement="top">
-            <NFormItem :label="$t('studio.imageGeneration.model')">
-              <ModelSelector
-                :allowed-types="['TEXT2IMAGE']"
-                :config="{}"
-                :model-entities="models"
-                :model-id="form.modelId"
-                @update:model-id="form.modelId = $event"
-              />
-            </NFormItem>
+            <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+              <NForm :show-label="true" label-placement="top">
+                <NFormItem :label="$t('studio.imageGeneration.model')">
+                  <ModelSelector
+                    :allowed-types="['TEXT2IMAGE']"
+                    :config="{}"
+                    :model-entities="models"
+                    :model-id="form.modelId"
+                    @update:model-id="form.modelId = $event"
+                  />
+                </NFormItem>
 
-            <NFormItem :label="$t('studio.imageGeneration.prompt')">
-              <NInput
-                v-model:value="form.prompt"
-                :autosize="{minRows: 4, maxRows: 8}"
-                :placeholder="$t('studio.imageGeneration.promptPlaceholder')"
-                type="textarea"
-              />
-            </NFormItem>
+                <NFormItem :label="$t('studio.imageGeneration.prompt')">
+                  <NInput
+                    v-model:value="form.prompt"
+                    :autosize="{ minRows: 4, maxRows: 8 }"
+                    :placeholder="$t('studio.imageGeneration.promptPlaceholder')"
+                    type="textarea"
+                  />
+                </NFormItem>
 
-            <NFormItem :label="$t('studio.imageGeneration.aspectRatio')">
-              <NSelect
-                v-model:value="form.ratio"
-                :options="ratioOptions"
-                @update:value="fillSizeByRatio"
-              />
-            </NFormItem>
+                <div class="grid grid-cols-2 gap-x-3">
+                  <NFormItem :label="$t('studio.imageGeneration.aspectRatio')">
+                    <NSelect
+                      v-model:value="form.ratio"
+                      :options="ratioOptions"
+                      @update:value="fillSizeByRatio"
+                    />
+                  </NFormItem>
 
-            <NFormItem :label="$t('studio.imageGeneration.resolution')">
-              <NSelect
-                v-model:value="form.size"
-                :options="sizeOptions"
-                :placeholder="$t('studio.imageGeneration.resolutionPlaceholder')"
-              />
-            </NFormItem>
+                  <NFormItem :label="$t('studio.imageGeneration.resolution')">
+                    <NSelect
+                      v-model:value="form.size"
+                      :options="sizeOptions"
+                      :placeholder="
+                        $t('studio.imageGeneration.resolutionPlaceholder')
+                      "
+                    />
+                  </NFormItem>
+                </div>
 
-            <NFormItem :label="$t('studio.imageGeneration.quality')">
-              <NSelect v-model:value="form.quality" :options="qualityOptions" />
-            </NFormItem>
+                <NFormItem :label="$t('studio.imageGeneration.quality')">
+                  <NSelect
+                    v-model:value="form.quality"
+                    :options="qualityOptions"
+                  />
+                </NFormItem>
 
-            <NFormItem :label="$t('studio.imageGeneration.count')">
-              <NSlider
-                v-model:value="form.n"
-                :marks="{1: '1', 2: '2', 3: '3', 4: '4'}"
-                :max="4"
-                :min="1"
-                :step="1"
-              />
-            </NFormItem>
+                <NFormItem :label="$t('studio.imageGeneration.count')">
+                  <NSlider
+                    v-model:value="form.n"
+                    :marks="{ 1: '1', 2: '2', 3: '3', 4: '4' }"
+                    :max="4"
+                    :min="1"
+                    :step="1"
+                  />
+                </NFormItem>
+              </NForm>
+            </div>
 
-            <NButton
-              :loading="loading"
-              block
-              type="primary"
-              @click="handleGenerate"
-            >
-              <template #icon>
-                <Sparkles class="size-4" />
-              </template>
-              {{ $t('studio.imageGeneration.generate') }}
-            </NButton>
-          </NForm>
+            <div class="shrink-0 border-t border-border p-4">
+              <NButton
+                :loading="loading"
+                block
+                size="large"
+                type="primary"
+                @click="handleGenerate"
+              >
+                <template #icon>
+                  <Sparkles class="size-4" />
+                </template>
+                {{ $t('studio.imageGeneration.generate') }}
+              </NButton>
+            </div>
           </div>
         </ResizablePanel>
 
         <ResizableHandle
-          class="mx-px transition-colors hover:bg-primary/60"
+          class="mx-1.5 w-px transition-colors hover:bg-primary/60"
           with-handle
         />
 
         <!-- 右侧结果 -->
         <ResizablePanel :default-size="70" :min-size="40">
           <div
-            class="flex h-full min-h-[420px] flex-col gap-3 rounded-xl border border-border bg-card p-4"
+            class="flex h-full min-h-[420px] flex-col rounded-lg border border-border bg-card shadow-[var(--shadow-card)]"
           >
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-semibold text-foreground">
-              {{ $t('studio.imageGeneration.resultTitle') }}
-            </div>
-            <NButton
-              v-if="generatedUrl"
-              size="small"
-              type="primary"
-              @click="downloadImage"
+            <div
+              class="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3"
             >
-              <template #icon>
-                <Download class="size-3.5" />
-              </template>
-              {{ $t('studio.imageGeneration.download') }}
-            </NButton>
-          </div>
-
-          <div class="flex flex-1 items-center justify-center rounded-lg bg-muted/30">
-            <NSpin :show="loading">
-              <img
-                v-if="generatedUrl"
-                :src="buildImageUrl()"
-                :alt="$t('studio.imageGeneration.resultAlt')"
-                class="max-h-[560px] w-full rounded-lg object-contain"
-              />
-              <div
-                v-else
-                class="flex flex-col items-center gap-2 p-12 text-muted-foreground"
-              >
-                <ImagePlus class="size-12" />
-                <span class="text-sm">{{
-                  $t('studio.imageGeneration.emptyResult')
-                }}</span>
+              <div class="flex items-center gap-2">
+                <span
+                  class="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary"
+                >
+                  <ImagePlus class="size-3.5" />
+                </span>
+                <span class="text-sm font-semibold text-foreground">
+                  {{ $t('studio.imageGeneration.resultTitle') }}
+                </span>
               </div>
-            </NSpin>
-          </div>
+              <NButton
+                v-if="generatedUrl"
+                size="small"
+                secondary
+                @click="downloadImage"
+              >
+                <template #icon>
+                  <Download class="size-3.5" />
+                </template>
+                {{ $t('studio.imageGeneration.download') }}
+              </NButton>
+            </div>
+
+            <div
+              class="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/20 p-4"
+            >
+              <NSpin :show="loading" class="flex items-center justify-center">
+                <img
+                  v-if="generatedUrl"
+                  :alt="$t('studio.imageGeneration.resultAlt')"
+                  :src="buildImageUrl()"
+                  class="max-h-[560px] max-w-full rounded-lg border border-border bg-background object-contain"
+                />
+                <div
+                  v-else
+                  class="flex flex-col items-center gap-3 px-8 py-12 text-center"
+                >
+                  <span
+                    class="flex size-12 items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground/60"
+                  >
+                    <ImagePlus class="size-5" />
+                  </span>
+                  <span class="text-[13px] font-semibold text-foreground/80">
+                    {{ $t('studio.imageGeneration.emptyResult') }}
+                  </span>
+                  <span class="max-w-sm text-xs leading-5 text-muted-foreground">
+                    {{ $t('studio.imageGeneration.promptPlaceholder') }}
+                  </span>
+                </div>
+              </NSpin>
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>

@@ -15,10 +15,10 @@ import {NButton, NPagination} from 'naive-ui';
 import {useVbenForm, type VbenFormSchema} from '#/adapter/form';
 import {dialog, message} from '#/adapter/naive';
 import {agentApi} from '#/api/aigc/agent';
-import LcActionCard from '#/components/LcActionCard/index.vue';
-import LcIcon from '#/components/LcIcon/index.vue';
 import LcListCard from '#/components/LcListCard/index.vue';
+import LcIcon from '#/components/LcIcon/index.vue';
 import ModelSelector from '#/components/ModelSelector/index.vue';
+import PageHeader from '#/components/PageHeader/index.vue';
 import {useAigcLookups} from '#/views/shared/aigc/lookups';
 import {aigcCommonTagOptions} from '#/views/shared/aigc/options';
 import {parseTagList, stringifyTagList} from '#/views/shared/aigc/tags';
@@ -78,14 +78,6 @@ const pagedItems = computed(() => {
 watch([keyword, selectedTag], () => {
   currentPage.value = 1;
 });
-const actionItems = computed(() => [
-  {
-    key: 'refresh',
-    label: $t('agents.actions.refreshList'),
-    icon: RefreshCcw,
-  },
-  { key: 'create', label: $t('agents.actions.create'), icon: Plus },
-]);
 const [BaseConfigModal, baseConfigModalApi] = useVbenModal({
   onCancel() {
     baseConfigModalApi.close();
@@ -289,16 +281,6 @@ function handleEdit(item: AigcAgent) {
   showEdit.value = true;
 }
 
-function handleAction(action: { key: string }) {
-  if (action.key === 'refresh') {
-    void initializePage();
-    return;
-  }
-  if (action.key === 'create') {
-    void openCreateModal();
-  }
-}
-
 async function handleEditBaseConfig(item: AigcAgent) {
   currentBaseConfigAgent.value = item;
   baseConfigModalApi.open();
@@ -381,7 +363,27 @@ onMounted(initializePage);
 
 <template>
   <Page>
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-3">
+      <PageHeader
+        :description="$t('agents.list.description')"
+        :title="$t('menu.dynamic.agents')"
+      >
+        <template #actions>
+          <NButton secondary @click="() => initializePage()">
+            <template #icon>
+              <RefreshCcw class="size-4" />
+            </template>
+            {{ $t('agents.actions.refreshList') }}
+          </NButton>
+          <NButton type="primary" @click="openCreateModal">
+            <template #icon>
+              <Plus class="size-4" />
+            </template>
+            {{ $t('agents.actions.create') }}
+          </NButton>
+        </template>
+      </PageHeader>
+
       <LcListCard
         :active-tag="selectedTag"
         :items="pagedItems"
@@ -392,14 +394,6 @@ onMounted(initializePage);
         @update:active-tag="selectedTag = $event"
         @update:search-value="keyword = $event"
       >
-        <template #leading-card>
-          <LcActionCard
-            :actions="actionItems"
-            :description="$t('common.messages.quickActionsDescription')"
-            :title="$t('agents.quickActions.title')"
-            @action="handleAction"
-          />
-        </template>
         <template #item="{ item }">
           <AgentCard
             :item="item"

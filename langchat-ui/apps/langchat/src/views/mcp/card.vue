@@ -32,19 +32,25 @@ const metaItems = computed(() => [
     label: $t('mcp.card.transportLabel'),
     value: findOptionLabel(MCP_TRANSPORT_OPTIONS, props.item.transport),
   },
-  {label: $t('mcp.card.site'), value: props.item.siteUrl || '--'},
-  {label: $t('mcp.card.uuid'), value: props.item.uuid || '--'},
+  { label: $t('mcp.card.site'), value: props.item.siteUrl || '--' },
+  { label: $t('mcp.card.uuid'), value: props.item.uuid || '--' },
   {
     label: $t('mcp.card.timeout'),
     value: props.item.timeout
-      ? $t('mcp.card.timeoutValue', {value: props.item.timeout})
+      ? $t('mcp.card.timeoutValue', { value: props.item.timeout })
       : $t('common.status.default'),
   },
 ]);
 </script>
 
 <template>
-  <LcCard :icon-component="PlugZap" :meta-items="metaItems" class="cursor-pointer" hoverable @click="emit('edit', item)">
+  <LcCard
+    :icon-component="PlugZap"
+    :meta-items="metaItems"
+    class="c-mcp-card h-full cursor-pointer"
+    hoverable
+    @click="emit('edit', item)"
+  >
     <template #header>
       <div class="min-w-0">
         <div
@@ -56,7 +62,7 @@ const metaItems = computed(() => [
     </template>
 
     <template #description>
-      <p class="text-[11px] text-muted-foreground line-clamp-2">
+      <p class="line-clamp-2 text-[11px] leading-4 text-muted-foreground">
         {{
           $t('mcp.card.transportSummary', {
             transport: findOptionLabel(MCP_TRANSPORT_OPTIONS, item.transport),
@@ -68,19 +74,21 @@ const metaItems = computed(() => [
 
     <template #header-extra>
       <LcStatusTag
-        :label="item.authorized ? $t('mcp.card.authorized') : $t('mcp.card.pendingAuthorized')"
+        :label="
+          item.authorized ? $t('mcp.card.authorized') : $t('mcp.card.pendingAuthorized')
+        "
         :type="item.authorized ? 'success' : 'warning'"
       />
     </template>
 
     <template #footer-extra>
-      <div class="truncate whitespace-nowrap text-[11px] text-muted-foreground">
+      <div class="truncate whitespace-nowrap text-[10px] text-muted-foreground">
         {{ formatRelativeTime(item.updateTime) }}
       </div>
     </template>
 
     <template #footer>
-      <NSpace :size="4">
+      <NSpace :size="2">
         <NButton
           v-tippy="$t('common.actions.edit')"
           circle
@@ -106,3 +114,17 @@ const metaItems = computed(() => [
     </template>
   </LcCard>
 </template>
+
+<style scoped>
+.c-mcp-card {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.c-mcp-card:hover {
+  transform: translateY(-2px);
+}
+</style>
