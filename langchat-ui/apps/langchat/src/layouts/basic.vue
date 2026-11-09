@@ -6,13 +6,7 @@ import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { useWatermark } from '@vben/hooks';
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  CircleHelp,
-  Info,
-  SvgGithubIcon,
-} from '@vben/icons';
+import { ChevronsLeft, ChevronsRight, Info } from '@vben/icons';
 import {
   BasicLayout,
   LanguageToggle,
@@ -25,12 +19,10 @@ import {
 import { preferences, updatePreferences } from '@vben/preferences';
 import { $t } from '@vben/locales';
 import { useAccessStore, useUserStore } from '@vben/stores';
-import { openWindow } from '@vben/utils';
 
 import { VbenFullScreen, VbenIconButton } from '@vben-core/shadcn-ui';
 
 import LcSidebarProductLinks from '#/components/LcSidebarProductLinks/index.vue';
-import { LANGCHAT_PRODUCT_LINKS } from '#/constants/product';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
 
@@ -41,6 +33,7 @@ const userStore = useUserStore();
 const authStore = useAuthStore();
 const accessStore = useAccessStore();
 const { destroyWatermark, updateWatermark } = useWatermark();
+const appName = computed(() => preferences.app.name);
 const showDot = computed(() =>
   notifications.value.some((item) => !item.isRead),
 );
@@ -52,24 +45,6 @@ const menus = computed(() => [
     },
     icon: Info,
     text: $t('layout.sidebar.about'),
-  },
-  {
-    handler: () => {
-      openWindow(LANGCHAT_PRODUCT_LINKS.github, {
-        target: '_blank',
-      });
-    },
-    icon: SvgGithubIcon,
-    text: 'GitHub',
-  },
-  {
-    handler: () => {
-      openWindow(`${LANGCHAT_PRODUCT_LINKS.github}/issues`, {
-        target: '_blank',
-      });
-    },
-    icon: CircleHelp,
-    text: $t('layout.sidebar.feedback'),
   },
 ]);
 
@@ -137,7 +112,7 @@ watch(
         :menus
         :text="userStore.userInfo?.realName"
         :description="userStore.userInfo?.desc"
-        tag-text="LangChat"
+        :tag-text="appName"
         @logout="handleLogout"
       />
     </template>
@@ -161,7 +136,7 @@ watch(
           :text="userStore.userInfo?.realName"
           :description="userStore.userInfo?.desc"
           show-details
-          tag-text="LangChat"
+          :tag-text="appName"
           @logout="handleLogout"
         />
         <div

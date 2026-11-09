@@ -30,10 +30,15 @@ export function createNaiveThemeOverrides(
 ): GlobalThemeOverrides {
   const border = (color: string) => `1px var(--border-style, solid) ${color}`;
   const dashedBorder = (color: string) => `1px dashed ${color}`;
-  const popupShadow = '0 14px 38px hsl(var(--foreground) / 0.12)';
+  const popupShadow =
+    'var(--shadow-popover, 0 10px 30px -12px hsl(var(--foreground) / 0.16))';
 
   return {
-    common: commonTokens,
+    common: {
+      ...commonTokens,
+      // 与全局设计令牌保持一致的字体栈（Inter → 系统中文字体）
+      fontFamily: 'var(--font-family)',
+    },
     Alert: {
       borderRadius: commonTokens.borderRadius,
     },

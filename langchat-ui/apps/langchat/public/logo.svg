@@ -1,14 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
-  <title>LangChat Agentic logo</title>
-  <desc>Two solid forms handing context from one side to the other.</desc>
-  <rect width="160" height="160" rx="36" fill="#18181B" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" role="img">
+  <title>肥鱼AI</title>
+  <desc>肥鱼AI 品牌标识：主色圆角方块内，白色几何鱼形与 AI 星芒。</desc>
+  <defs>
+    <linearGradient id="fy-bg" x1="16" y1="8" x2="144" y2="152" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E93FF" />
+      <stop offset="1" stop-color="#0057C8" />
+    </linearGradient>
+    <linearGradient id="fy-body" x1="58" y1="64" x2="126" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#DCEEFF" />
+    </linearGradient>
+  </defs>
+
+  <rect width="160" height="160" rx="36" fill="url(#fy-bg)" />
+
+  <!-- 水波层次：低透明度同心圆，呼应「水滴 / 鱼」的流动感 -->
+  <circle cx="80" cy="84" r="54" fill="#FFFFFF" opacity="0.07" />
+  <circle cx="80" cy="84" r="40" fill="#FFFFFF" opacity="0.07" />
+
+  <!-- 鱼尾 -->
   <path
-    d="M41 35h38a4 4 0 0 1 4 4v34c0 18-14 32-32 32H41a8 8 0 0 1-8-8V84h18c6 0 11-5 11-11V56H33V43a8 8 0 0 1 8-8Z"
+    d="M56 84 30 62c-3-2-6 0-5 4l8 18-8 18c-1 4 2 6 5 4l26-22Z"
+    fill="#FFFFFF"
+    opacity="0.92"
+  />
+
+  <!-- 鱼身：左侧收束连接鱼尾，右侧圆润的头部 -->
+  <path
+    d="M56 84c14-22 48-27 65-12 10 9 10 15 0 24-17 15-51 10-65-12Z"
+    fill="url(#fy-body)"
+  />
+
+  <!-- 背鳍 -->
+  <path
+    d="M82 66c6-8 16-11 25-9-5 3-9 7-11 12-5 0-10-1-14-3Z"
+    fill="#BBDCFF"
+  />
+
+  <!-- 鱼眼 -->
+  <circle cx="103" cy="81" r="4.5" fill="#0057C8" />
+
+  <!-- AI 星芒：鱼类标识之外的智能符号 -->
+  <path
+    d="M124 43c1.6 5.6 2.4 6.4 8 8-5.6 1.6-6.4 2.4-8 8-1.6-5.6-2.4-6.4-8-8 5.6-1.6 6.4-2.4 8-8Z"
     fill="#FFFFFF"
   />
-  <path
-    d="M119 125H81a4 4 0 0 1-4-4V87c0-18 14-32 32-32h10a8 8 0 0 1 8 8v13h-18c-6 0-11 5-11 11v17h29v13a8 8 0 0 1-8 8Z"
-    fill="#FFFFFF"
-  />
-  <path d="m80 71 9 9-9 9-9-9 9-9Z" fill="#18181B" />
+  <circle cx="140" cy="60" r="2.6" fill="#FFFFFF" opacity="0.8" />
 </svg>

@@ -1,8 +1,14 @@
 {
   "banner": {
-    "description": "The full-stack open source platform for knowledge-augmented and agent-driven apps, unifying models, knowledge bases, agents, skills and MCP capabilities.",
-    "maintainedByPre": "Maintained by",
-    "maintainedByPost": ""
+    "platform": "Enterprise AI Agent Platform",
+    "description": "Unify models, knowledge bases, agents, skills and MCP capabilities into an orchestrated and governable AI application foundation for your business.",
+    "maintainedByPre": "Delivered by",
+    "maintainedByPost": "",
+    "versionPrefix": "Version",
+    "statusLabel": "Service status",
+    "statusValue": "All systems normal",
+    "editionLabel": "Deployment",
+    "editionValue": "Private deployment"
   },
   "metrics": {
     "label": "Metrics",

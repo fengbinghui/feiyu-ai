@@ -1,17 +1,14 @@
 {
   "product": {
-    "title": "Product & Open Source",
-    "about": "About",
-    "aboutTitle": "About LangChat",
-    "github": "GitHub",
-    "githubTitle": "Visit the LangChat GitHub repository"
+    "title": "Product",
+    "about": "About us",
+    "aboutTitle": "About Feiyu AI"
   },
   "sidebar": {
-    "about": "About LangChat",
-    "feedback": "Feedback"
+    "about": "About Feiyu AI"
   },
   "user": {
     "currentTenant": "Current tenant: {tenantId}",
-    "defaultDesc": "LangChat admin user"
+    "defaultDesc": "Feiyu AI platform user"
   }
 }

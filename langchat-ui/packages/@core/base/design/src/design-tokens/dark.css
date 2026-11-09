@@ -2,34 +2,28 @@
 .dark[data-theme='custom'],
 .dark[data-theme='default'] {
   /* Default background color of <body />...etc */
-  --background: 222.34deg 10.43% 12.27%;
+  --background: 220 15% 11%;
 
   /* 主体区域背景色 */
-  --background-deep: 220deg 13.06% 9%;
-  --foreground: 0 0% 95%;
+  --background-deep: 222 18% 8%;
+  --foreground: 213 20% 93%;
 
   /* Background color for <Card /> */
-  --card: 222.34deg 10.43% 12.27%;
+  --card: 220 14% 13%;
 
   /* --card: 222.2 84% 4.9%; */
-  --card-foreground: 210 40% 98%;
+  --card-foreground: 213 20% 93%;
 
   /* Background color for popovers such as <DropdownMenu />, <HoverCard />, <Popover /> */
 
-  /* --popover: 222.82deg 8.43% 12.27%; */
-
   /* 弹出层的背景色与主题区域背景色太过接近  */
-  --popover: 0 0% 14.2%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 220 12% 15%;
+  --popover-foreground: 213 20% 93%;
 
   /* Muted backgrounds such as <TabsList />, <Skeleton /> and <Switch /> */
 
-  /* --muted: 220deg 6.82% 17.25%; */
-
-  /* --muted-foreground: 215 20.2% 65.1%; */
-
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 220 10% 17%;
+  --muted-foreground: 218 10% 64%;
 
   /* 主题颜色 */
 
@@ -57,34 +51,45 @@
   --warning-foreground: 0 0% 98%;
 
   /* 颜色次要 */
-  --secondary: 240 5% 17%;
+  --secondary: 220 10% 17%;
   --secondary-foreground: 0 0% 98%;
 
   /* Used for accents such as hover effects on <DropdownMenuItem>, <SelectItem>...etc */
-  --accent: 216 5% 19%;
-  --accent-dark: 240 0% 22%;
-  --accent-darker: 240 0% 26%;
-  --accent-lighter: 216 5% 12%;
-  --accent-hover: 216 5% 24%;
+  --accent: 220 10% 19%;
+  --accent-dark: 220 10% 22%;
+  --accent-darker: 220 10% 26%;
+  --accent-lighter: 220 12% 13%;
+  --accent-hover: 220 10% 24%;
   --accent-foreground: 0 0% 98%;
 
   /* Darker color */
-  --heavy: 216 5% 24%;
+  --heavy: 220 10% 24%;
   --heavy-foreground: var(--accent-foreground);
 
   /* Default border color */
-  --border: 240 3.7% 22%;
+  --border: 220 10% 21%;
 
   /* Border color for inputs such as <Input />, <Select />, <Textarea /> */
   --input: 0deg 0% 100% / 10%;
-  --input-placeholder: 218deg 11% 65%;
+  --input-placeholder: 218deg 11% 62%;
   --input-background: 0deg 0% 100% / 5%;
 
   /* Used for focus ring */
-  --ring: 222.2 84% 4.9%;
+  --ring: 212 90% 50%;
 
   /* 基本圆角大小 */
   --radius: 0.5rem;
+
+  /* 风格 A：轻阴影体系（深色模式） */
+  --shadow-card:
+    0 1px 2px 0 hsl(0 0% 0% / 40%),
+    0 10px 28px -18px hsl(0 0% 0% / 55%);
+  --shadow-card-hover:
+    0 2px 6px -2px hsl(0 0% 0% / 45%),
+    0 16px 36px -22px hsl(0 0% 0% / 60%);
+  --shadow-popover:
+    0 12px 32px -14px hsl(0 0% 0% / 60%),
+    0 2px 8px -2px hsl(0 0% 0% / 40%);
 
   /* ============= Custom ============= */
 
@@ -97,12 +102,12 @@
 
   /* =============component & UI============= */
 
-  --sidebar: 222.34deg 10.43% 12.27%;
-  --sidebar-deep: 220deg 13.06% 9%;
+  --sidebar: 220 15% 11%;
+  --sidebar-deep: 222 18% 8%;
   --menu: var(--sidebar);
 
   /* header */
-  --header: 222.34deg 10.43% 12.27%;
+  --header: 220 14% 13%;
 
   color-scheme: dark;
 }

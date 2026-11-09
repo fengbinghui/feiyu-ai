@@ -1,13 +1,18 @@
 {
   "hero": {
-    "openSourceLabel": "Open Source",
-    "title": "{name}: the open source platform connecting models, knowledge and agents",
-    "introFirst": "LangChat is built for teams creating knowledge-augmented and agent-driven applications, bringing model access, knowledge engineering, agents, skills and MCP into one product system. It offers app configuration UIs plus a complete pipeline from data preparation and capability orchestration to streaming chat and platform governance.",
-    "introSecond": "The core value is consolidating scattered AI capabilities into manageable, composable, deliverable business modules — keeping teams technically autonomous while avoiding the cost of rebuilding model gateways, RAG pipelines, tool invocation and permission systems."
+    "badge": "Enterprise AI Agent Platform",
+    "title": "{name}: bring AI into every business process",
+    "introFirst": "Feiyu AI is built for teams creating knowledge-augmented and agent-driven applications, bringing model access, knowledge engineering, agents, skills and MCP tools into one enterprise platform. It offers app configuration UIs plus a complete pipeline from data preparation and capability orchestration to streaming chat and platform governance.",
+    "introSecond": "The core value is consolidating scattered AI capabilities into manageable, composable and deliverable business modules, keeping teams technically autonomous while avoiding the cost of rebuilding model gateways, RAG pipelines, tool invocation and permission systems."
   },
-  "links": {
-    "title": "Official & Open Source Links",
-    "website": "Website"
+  "meta": {
+    "version": "Current version",
+    "edition": "Edition",
+    "editionValue": "Enterprise",
+    "deployment": "Deployment",
+    "deploymentValue": "Private deployment",
+    "updated": "Updated",
+    "updatedValue": "November 2026"
   },
   "features": {
     "models": {
@@ -49,23 +54,27 @@
   "architecture": {
     "title": "System Component Architecture",
     "description": "Module relationships from frontend interaction and service aggregation to core AI capabilities and infrastructure",
-    "diagramAria": "LangChat system architecture diagram",
-    "diagramTitle": "LangChat System Component Architecture",
-    "diagramDesc": "Users access LangChat Server through LangChat UI. The server aggregates permissions, AIGC, AI runtime and common services, connecting to relational databases, vector databases, S3 object storage, model providers and MCP services.",
+    "diagramAria": "Feiyu AI system architecture diagram",
+    "diagramTitle": "Feiyu AI System Component Architecture",
+    "diagramDesc": "Users access the Feiyu AI platform server through the Feiyu AI console. The server aggregates permissions, AIGC, AI runtime and common services, connecting to relational databases, vector databases, S3 object storage, model providers and MCP services.",
     "eyebrowEntry": "Interaction & Service Entry",
     "eyebrowCore": "Core Capability Layer",
     "eyebrowData": "Data & External Capability Layer",
     "userAdmin": "Users / Admins",
     "userAdminDesc": "Configure, build and use AI apps",
     "ui": "Unified management and app interaction UI",
-    "server": "Spring Boot bootstrap, module aggregation, API publishing and runtime config",
+    "server": "Service aggregation, API publishing and runtime config",
     "authModule": "Auth & Accounts",
+    "authModuleCode": "Account · Role · Menu",
     "authModuleDesc": "Users, roles, menus, authorization",
     "aigcModule": "AIGC Services",
+    "aigcModuleCode": "Model · Knowledge · Agent",
     "aigcModuleDesc": "Models, knowledge bases, agents, skills",
     "aiRuntime": "AI Runtime",
+    "aiRuntimeCode": "RAG · Tools · Streaming",
     "aiRuntimeDesc": "LangChain4j, RAG, tool execution",
     "commonServices": "Common Services",
+    "commonServicesCode": "Storage · Jobs · Auth",
     "commonServicesDesc": "OSS, jobs, authentication and base utilities",
     "businessData": "Business & permission data",
     "vectorStore": "Vector Store",
@@ -75,6 +84,10 @@
     "modelProvidersDesc": "Unified multi-model access",
     "mcpServices": "MCP Services",
     "mcpServicesDesc": "External tools and capability extensions",
-    "diagramNote": "Module boundaries follow the current repository layout; data and external services can scale independently in deployment."
+    "diagramNote": "Module boundaries follow the current system layout; data and external services can scale independently in deployment."
+  },
+  "license": {
+    "title": "Licensing & Compliance",
+    "description": "Feiyu AI is built on its own core capabilities together with multiple open-source components. License notices for those components are provided with the deployment package; see the third-party license notice file in the deployment directory."
   }
 }

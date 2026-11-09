@@ -1,6 +1,6 @@
-# LangChat UI 设计语言规范 (Design System)
+# 肥鱼AI UI 设计语言规范 (Design System)
 
-本文档旨在梳理并沉淀 LangChat 核心 UI 的设计基因。这种风格融合了**精致的技术感 (Tech-Premium)**与**轻量化的交互体验**，适用于所有核心算力配置及 Agent 交互场景。
+本文档旨在梳理并沉淀肥鱼AI 核心 UI 的设计基因。这种风格融合了**精致的技术感 (Tech-Premium)**与**轻量化的交互体验**，适用于所有核心算力配置及 Agent 交互场景。
 
 ## 1. 核心视觉基因 (Visual Identity)
 

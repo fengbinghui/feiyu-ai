@@ -6,13 +6,11 @@ import {useRouter} from 'vue-router';
 
 import {Page} from '@vben/common-ui';
 import {
+  ArrowRight,
   Box,
   Coins,
-  ExternalLink,
-  Globe,
   LayoutGrid,
   MessageSquare,
-  SvgGithubIcon,
   UserRound,
 } from '@vben/icons';
 import {$t} from '@vben/locales';
@@ -23,14 +21,12 @@ import {NSpin, NTag} from 'naive-ui';
 
 import {getExploreOverviewApi} from '#/api/core/explore';
 import LcCard from '#/components/LcCard/index.vue';
-import {
-  LANGCHAT_PRODUCT_LINKS,
-  LANGCHAT_PRODUCT_TEAM,
-} from '#/constants/product';
+import { FEIYU_PRODUCT_TEAM } from '#/constants/product';
 
 const router = useRouter();
 const { isDark } = usePreferences();
 const appName = computed(() => preferences.app.name);
+const appVersion = import.meta.env.VITE_APP_VERSION;
 const logoSrc = computed(() =>
   isDark.value && preferences.logo.sourceDark
     ? preferences.logo.sourceDark
@@ -195,15 +191,15 @@ function buildLineChartOption(data: ExploreTrendPoint[], color: string) {
 }
 
 function getCoreChartOption() {
-  return buildLineChartOption(messageTrendData.value, '#2563eb');
+  return buildLineChartOption(messageTrendData.value, '#006BE6');
 }
 
 function getGovernanceChartOption() {
-  return buildLineChartOption(tokenTrendData.value, '#0ea5e9');
+  return buildLineChartOption(tokenTrendData.value, '#38A1FF');
 }
 
 function getActivityChartOption() {
-  return buildLineChartOption(userTrendData.value, '#16a34a');
+  return buildLineChartOption(userTrendData.value, '#14B8A6');
 }
 
 async function renderCharts() {
@@ -229,50 +225,52 @@ onMounted(async () => {
 <template>
   <Page>
     <div class="flex flex-col gap-2">
-      <!-- 产品品牌横幅 -->
+      <!-- 品牌与运行概览横幅 -->
       <section
-        class="relative overflow-hidden rounded-xl border border-border bg-card px-4 py-4 sm:px-5"
+        class="relative overflow-hidden rounded-xl border border-border bg-card px-5 py-5 sm:px-6"
       >
         <div
-          class="pointer-events-none absolute -right-12 -top-24 size-64 rounded-full bg-primary/10 blur-3xl"
+          class="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-primary/10 blur-3xl"
         ></div>
         <div
           class="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
         >
           <div class="flex min-w-0 items-start gap-3.5">
-            <div
-              class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-primary/10"
-            >
-              <img
-                v-if="logoSrc"
-                :alt="appName"
-                :src="logoSrc"
-                class="size-8 object-contain"
-              />
-              <span v-else class="text-sm font-bold text-primary">LC</span>
-            </div>
+            <img
+              v-if="logoSrc"
+              :alt="appName"
+              :src="logoSrc"
+              class="size-11 shrink-0 rounded-xl shadow-sm"
+            />
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <h1 class="text-lg font-semibold tracking-tight text-foreground">
+                <h1
+                  class="text-xl font-semibold tracking-tight text-foreground"
+                >
                   {{ appName }}
                 </h1>
                 <span
-                  class="rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary"
+                  class="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-primary"
                 >
-                  {{ $t('market.openSourceLabel') }}
+                  {{ $t('explore.banner.platform') }}
+                </span>
+                <span
+                  class="rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                >
+                  {{ $t('explore.banner.versionPrefix') }} v{{ appVersion }}
                 </span>
               </div>
-              <p class="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 {{ $t('explore.banner.description') }}
               </p>
               <div
-                class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground"
+                class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-muted-foreground"
               >
                 <span class="inline-flex items-center gap-1.5">
                   <span class="size-1.5 rounded-full bg-primary"></span>
                   {{ $t('explore.banner.maintainedByPre') }}
                   <strong class="font-medium text-foreground">
-                    {{ LANGCHAT_PRODUCT_TEAM }}
+                    {{ FEIYU_PRODUCT_TEAM }}
                   </strong>
                   {{ $t('explore.banner.maintainedByPost') }}
                 </span>
@@ -282,67 +280,36 @@ onMounted(async () => {
                   @click="openRoute('/about')"
                 >
                   {{ $t('market.aboutProject') }}
-                  <ExternalLink class="size-3" />
+                  <ArrowRight class="size-3" />
                 </button>
               </div>
             </div>
           </div>
 
-          <div class="shrink-0 xl:min-w-[420px]">
+          <!-- 与品牌无关的部署与运行信息 -->
+          <div class="grid shrink-0 grid-cols-2 gap-2 xl:w-[320px]">
             <div
-              class="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+              class="rounded-lg border border-border/70 bg-background/60 px-3 py-2.5"
             >
-              {{ $t('about.links.title') }}
+              <div class="text-[10px] font-medium text-muted-foreground">
+                {{ $t('explore.banner.statusLabel') }}
+              </div>
+              <div
+                class="mt-1 flex items-center gap-1.5 text-xs font-semibold text-foreground"
+              >
+                <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                {{ $t('explore.banner.statusValue') }}
+              </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
-              <a
-                class="group flex h-9 items-center gap-2 rounded-lg border border-border bg-background/70 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                :href="LANGCHAT_PRODUCT_LINKS.github"
-                rel="noopener"
-                target="_blank"
-              >
-                <SvgGithubIcon class="size-3.5 shrink-0" />
-                GitHub
-                <ExternalLink
-                  class="ml-auto size-3 text-muted-foreground transition-colors group-hover:text-primary"
-                />
-              </a>
-              <a
-                class="group flex h-9 items-center gap-2 rounded-lg border border-border bg-background/70 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                :href="LANGCHAT_PRODUCT_LINKS.gitee"
-                rel="noopener"
-                target="_blank"
-              >
-                <span class="font-semibold text-[#c71d23]">G</span>
-                Gitee
-                <ExternalLink
-                  class="ml-auto size-3 text-muted-foreground transition-colors group-hover:text-primary"
-                />
-              </a>
-              <a
-                class="group flex h-9 items-center gap-2 rounded-lg border border-border bg-background/70 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                :href="LANGCHAT_PRODUCT_LINKS.gitcode"
-                rel="noopener"
-                target="_blank"
-              >
-                <span class="font-semibold text-primary">GC</span>
-                GitCode
-                <ExternalLink
-                  class="ml-auto size-3 text-muted-foreground transition-colors group-hover:text-primary"
-                />
-              </a>
-              <a
-                class="group flex h-9 items-center gap-2 rounded-lg border border-border bg-background/70 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                :href="LANGCHAT_PRODUCT_LINKS.website"
-                rel="noopener"
-                target="_blank"
-              >
-                <Globe class="size-3.5 shrink-0" />
-                {{ $t('about.links.website') }}
-                <ExternalLink
-                  class="ml-auto size-3 text-muted-foreground transition-colors group-hover:text-primary"
-                />
-              </a>
+            <div
+              class="rounded-lg border border-border/70 bg-background/60 px-3 py-2.5"
+            >
+              <div class="text-[10px] font-medium text-muted-foreground">
+                {{ $t('explore.banner.editionLabel') }}
+              </div>
+              <div class="mt-1 text-xs font-semibold text-foreground">
+                {{ $t('explore.banner.editionValue') }}
+              </div>
             </div>
           </div>
         </div>
@@ -372,7 +339,9 @@ onMounted(async () => {
             </template>
 
             <div class="flex items-end justify-between gap-3">
-              <div class="text-2xl font-semibold text-foreground">
+              <div
+                class="text-[26px] font-semibold leading-none tracking-tight text-foreground"
+              >
                 {{ item.value }}
               </div>
               <NTag
@@ -390,10 +359,7 @@ onMounted(async () => {
 
         <div class="mt-2 space-y-4">
           <div class="grid gap-3 xl:grid-cols-2">
-            <LcCard
-              :hoverable="false"
-              :icon-component="MessageSquare"
-            >
+            <LcCard :hoverable="false" :icon-component="MessageSquare">
               <template #header>
                 <div class="text-[13px] font-semibold text-foreground">
                   {{ $t('explore.charts.messageTrend') }}

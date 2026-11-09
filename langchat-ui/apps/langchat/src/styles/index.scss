@@ -13,8 +13,8 @@
    用 html :where(#app ...) 把优先级压到所有类选择器之下:
    - 高于 Tailwind 预检的 * { border: 0 solid },工具类元素的线型能跟随主题;
    - 低于 border: none、显式 border-solid 等类级声明,
-     不会把"本无边框"的元素(输入框、按钮)强制渲染出粗虚线;
-   Loading 页注入在 #app 挂载点之外,不受影响。 */
+      不会把"本无边框"的元素(输入框、按钮)强制渲染出粗虚线;
+    Loading 页注入在 #app 挂载点之外,不受影响。 */
 html :where(#app) *,
 html :where(#app) ::before,
 html :where(#app) ::after {
@@ -56,4 +56,86 @@ html :where(#app) ::after {
   color: #fff !important;
   background-color: var(--vxe-ui-status-error-color) !important;
   border-color: var(--vxe-ui-status-error-color) !important;
+}
+
+/* ==========================================================================
+   风格 A（极简高级商务风）：全局基础细节
+   ========================================================================== */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizelegibility;
+}
+
+/* 字体：优先 Inter，其次系统中文字体（PingFang SC / 微软雅黑 / Noto Sans SC） */
+html,
+body,
+#app {
+  font-family: var(--font-family);
+}
+
+/* 卡片：统一的 8px 圆角 + 轻阴影体系 */
+#app .lc-card {
+  border-color: hsl(var(--border) / 0.85);
+  box-shadow: var(--shadow-card);
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+#app .lc-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* 页面标题：更克制的字重与字距 */
+#app h1,
+#app h2,
+#app h3 {
+  letter-spacing: -0.01em;
+}
+
+/* 文本选中色使用品牌主色 */
+#app ::selection {
+  color: inherit;
+  background-color: hsl(var(--primary) / 18%);
+}
+
+/* 细滚动条：降低视觉噪音 */
+#app ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#app ::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 22%);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+#app ::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 40%);
+}
+
+/* 输入框在浅色背景下的聚焦更干净：去掉双重描边 */
+#app .n-input.n-input--focus,
+#app .n-base-selection.n-base-selection--focus {
+  box-shadow: none;
+}
+
+/* 动效尊重系统「减少动态效果」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  #app *,
+  #app *::before,
+  #app *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

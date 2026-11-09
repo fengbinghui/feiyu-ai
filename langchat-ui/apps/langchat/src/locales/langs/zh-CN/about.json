@@ -1,13 +1,18 @@
 {
   "hero": {
-    "openSourceLabel": "开源产品",
-    "title": "{name}：连接模型、知识与智能体的开源应用平台",
-    "introFirst": "LangChat 面向需要构建知识增强与智能体应用的团队，将模型接入、知识工程、Agent、Skills 与 MCP 汇聚到统一的产品体系中。它不仅提供应用配置界面，也打通从数据准备、能力编排到对话运行和平台治理的完整链路。",
-    "introSecond": "项目的核心价值是把分散的 AI 基础能力沉淀为可管理、可组合、可交付的业务模块，让开发团队能够保留技术自主性，同时减少重复建设模型网关、RAG 流程、工具调用和权限体系的成本。"
+    "badge": "企业级 AI Agent 应用平台",
+    "title": "{name}：让 AI 融入每一项业务",
+    "introFirst": "肥鱼AI 面向需要构建知识增强与智能体应用的团队，把模型接入、知识工程、Agent、Skills 与 MCP 工具汇聚到统一的企业级平台中。产品不仅提供应用配置界面，也打通从数据准备、能力编排到对话运行和平台治理的完整链路。",
+    "introSecond": "核心价值在于把分散的 AI 基础能力沉淀为可管理、可组合、可交付的业务模块，让团队保留技术自主性，同时减少重复建设模型网关、RAG 流程、工具调用与权限体系的成本。"
   },
-  "links": {
-    "title": "官方与开源地址",
-    "website": "官方网站"
+  "meta": {
+    "version": "当前版本",
+    "edition": "版本类型",
+    "editionValue": "企业版",
+    "deployment": "部署形态",
+    "deploymentValue": "私有化部署",
+    "updated": "更新日期",
+    "updatedValue": "2026 年 11 月"
   },
   "features": {
     "models": {
@@ -49,23 +54,27 @@
   "architecture": {
     "title": "系统组件架构",
     "description": "从前端交互、服务聚合到 AI 核心能力与基础设施的模块关系",
-    "diagramAria": "LangChat 系统架构图",
-    "diagramTitle": "LangChat 系统组件模块架构",
-    "diagramDesc": "用户通过 LangChat UI 访问 LangChat Server，服务端聚合权限、AIGC、AI 运行时和公共服务，并连接关系数据库、向量数据库、S3 对象存储、模型供应商与 MCP 服务。",
+    "diagramAria": "肥鱼AI 系统架构图",
+    "diagramTitle": "肥鱼AI 系统组件模块架构",
+    "diagramDesc": "用户通过肥鱼AI 控制台访问平台服务端，服务端聚合权限、AIGC、AI 运行时和公共服务，并连接关系数据库、向量数据库、S3 对象存储、模型供应商与 MCP 服务。",
     "eyebrowEntry": "交互与服务入口",
     "eyebrowCore": "核心能力层",
     "eyebrowData": "数据与外部能力层",
     "userAdmin": "用户 / 管理员",
     "userAdminDesc": "配置、构建与使用 AI 应用",
-    "ui": "统一管理与应用交互界面",
-    "server": "Spring Boot 启动、模块聚合、接口发布与运行配置",
+    "ui": "统一的管理与应用交互界面",
+    "server": "服务聚合、接口发布与运行配置",
     "authModule": "权限与账号",
+    "authModuleCode": "账号 · 角色 · 菜单",
     "authModuleDesc": "用户、角色、菜单、授权",
     "aigcModule": "AIGC 业务",
+    "aigcModuleCode": "模型 · 知识 · Agent",
     "aigcModuleDesc": "模型、知识库、Agent、Skills",
     "aiRuntime": "AI 运行时",
+    "aiRuntimeCode": "RAG · 工具 · 流式",
     "aiRuntimeDesc": "LangChain4j、RAG、工具执行",
     "commonServices": "公共服务",
+    "commonServicesCode": "存储 · 任务 · 认证",
     "commonServicesDesc": "OSS、任务、认证与基础工具",
     "businessData": "业务与权限数据",
     "vectorStore": "向量存储",
@@ -75,6 +84,10 @@
     "modelProvidersDesc": "多模型统一接入",
     "mcpServices": "MCP 服务",
     "mcpServicesDesc": "外部工具与能力扩展",
-    "diagramNote": "模块边界依据当前仓库结构绘制，部署时可按业务规模独立扩展数据与外部服务。"
+    "diagramNote": "模块边界依据当前系统结构绘制，部署时可按业务规模独立扩展数据与外部服务。"
+  },
+  "license": {
+    "title": "许可与合规",
+    "description": "肥鱼AI 在自研核心能力的基础上使用多项开源组件构建，相关组件的许可声明随部署包一并提供，详见部署目录中的第三方许可说明文件。"
   }
 }

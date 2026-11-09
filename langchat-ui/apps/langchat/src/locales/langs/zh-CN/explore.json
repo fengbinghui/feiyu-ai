@@ -1,8 +1,14 @@
 {
   "banner": {
-    "description": "面向知识增强与智能体应用构建的全栈开源平台，统一连接模型、知识库、Agent、Skills 与 MCP 能力。",
+    "platform": "企业级 AI Agent 应用平台",
+    "description": "统一连接模型、知识库、Agent、Skills 与 MCP 能力，为业务提供可编排、可治理的 AI 应用底座。",
     "maintainedByPre": "由",
-    "maintainedByPost": "开发维护"
+    "maintainedByPost": "持续交付",
+    "versionPrefix": "版本",
+    "statusLabel": "服务状态",
+    "statusValue": "运行正常",
+    "editionLabel": "部署形态",
+    "editionValue": "私有化部署"
   },
   "metrics": {
     "label": "指标项",

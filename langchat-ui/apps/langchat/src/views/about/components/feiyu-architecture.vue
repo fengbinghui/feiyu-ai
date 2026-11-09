@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-defineOptions({ name: 'LangChatArchitecture' });
+defineOptions({ name: 'FeiyuArchitecture' });
 </script>
 
 <template>
@@ -9,16 +9,16 @@ defineOptions({ name: 'LangChatArchitecture' });
     :aria-label="$t('about.architecture.diagramAria')"
   >
     <svg
-      aria-labelledby="langchat-architecture-title langchat-architecture-desc"
+      aria-labelledby="feiyu-architecture-title feiyu-architecture-desc"
       class="architecture-diagram"
       role="img"
       viewBox="0 0 1100 450"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title id="langchat-architecture-title">
+      <title id="feiyu-architecture-title">
         {{ $t('about.architecture.diagramTitle') }}
       </title>
-      <desc id="langchat-architecture-desc">
+      <desc id="feiyu-architecture-desc">
         {{ $t('about.architecture.diagramDesc') }}
       </desc>
 
@@ -88,7 +88,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           x="467"
           y="72"
         >
-          LangChat UI
+          肥鱼AI 控制台
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="467" y="94">
           Vue 3 · TypeScript · Vben Admin
@@ -122,7 +122,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           x="877"
           y="72"
         >
-          LangChat Server
+          肥鱼AI 服务端
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="877" y="96">
           {{ $t('about.architecture.server') }}
@@ -142,7 +142,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           {{ $t('about.architecture.authModule') }}
         </text>
         <text class="architecture-node-code" text-anchor="middle" x="130" y="214">
-          langchat-auth
+          {{ $t('about.architecture.authModuleCode') }}
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="130" y="233">
           {{ $t('about.architecture.authModuleDesc') }}
@@ -154,7 +154,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           {{ $t('about.architecture.aigcModule') }}
         </text>
         <text class="architecture-node-code" text-anchor="middle" x="410" y="214">
-          langchat-aigc
+          {{ $t('about.architecture.aigcModuleCode') }}
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="410" y="233">
           {{ $t('about.architecture.aigcModuleDesc') }}
@@ -166,7 +166,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           {{ $t('about.architecture.aiRuntime') }}
         </text>
         <text class="architecture-node-code" text-anchor="middle" x="690" y="214">
-          langchat-core
+          {{ $t('about.architecture.aiRuntimeCode') }}
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="690" y="233">
           {{ $t('about.architecture.aiRuntimeDesc') }}
@@ -178,7 +178,7 @@ defineOptions({ name: 'LangChatArchitecture' });
           {{ $t('about.architecture.commonServices') }}
         </text>
         <text class="architecture-node-code" text-anchor="middle" x="970" y="214">
-          langchat-common
+          {{ $t('about.architecture.commonServicesCode') }}
         </text>
         <text class="architecture-node-copy" text-anchor="middle" x="970" y="233">
           {{ $t('about.architecture.commonServicesDesc') }}

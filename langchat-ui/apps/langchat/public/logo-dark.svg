@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" role="img">
+  <title>肥鱼AI（暗色）</title>
+  <desc>肥鱼AI 品牌标识暗色版：深墨蓝圆角方块内，浅色几何鱼形与 AI 星芒。</desc>
+  <defs>
+    <linearGradient id="fy-dark-bg" x1="16" y1="8" x2="144" y2="152" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#13233C" />
+      <stop offset="1" stop-color="#070F1D" />
+    </linearGradient>
+    <linearGradient id="fy-dark-body" x1="58" y1="64" x2="126" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF4FF" />
+      <stop offset="1" stop-color="#9DCCFF" />
+    </linearGradient>
+  </defs>
+
+  <rect width="160" height="160" rx="36" fill="url(#fy-dark-bg)" />
+  <rect
+    x="1"
+    y="1"
+    width="158"
+    height="158"
+    rx="35"
+    stroke="#2E93FF"
+    stroke-opacity="0.35"
+    stroke-width="2"
+  />
+
+  <circle cx="80" cy="84" r="54" fill="#2E93FF" opacity="0.10" />
+  <circle cx="80" cy="84" r="40" fill="#2E93FF" opacity="0.10" />
+
+  <!-- 鱼尾 -->
+  <path
+    d="M56 84 30 62c-3-2-6 0-5 4l8 18-8 18c-1 4 2 6 5 4l26-22Z"
+    fill="#9DCCFF"
+    opacity="0.95"
+  />
+
+  <!-- 鱼身 -->
+  <path
+    d="M56 84c14-22 48-27 65-12 10 9 10 15 0 24-17 15-51 10-65-12Z"
+    fill="url(#fy-dark-body)"
+  />
+
+  <!-- 背鳍 -->
+  <path
+    d="M82 66c6-8 16-11 25-9-5 3-9 7-11 12-5 0-10-1-14-3Z"
+    fill="#5AA6F0"
+  />
+
+  <!-- 鱼眼 -->
+  <circle cx="103" cy="81" r="4.5" fill="#070F1D" />
+
+  <!-- AI 星芒 -->
+  <path
+    d="M124 43c1.6 5.6 2.4 6.4 8 8-5.6 1.6-6.4 2.4-8 8-1.6-5.6-2.4-6.4-8-8 5.6-1.6 6.4-2.4 8-8Z"
+    fill="#FFFFFF"
+  />
+  <circle cx="140" cy="60" r="2.6" fill="#7FC0FF" opacity="0.9" />
+</svg>

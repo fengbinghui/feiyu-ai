@@ -2,10 +2,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { Info, SvgGithubIcon } from '@vben/icons';
-import { openWindow } from '@vben/utils';
-
-import { LANGCHAT_PRODUCT_LINKS } from '#/constants/product';
+import { Info } from '@vben/icons';
 
 defineOptions({ name: 'LcSidebarProductLinks' });
 
@@ -21,10 +18,6 @@ const isAboutActive = computed(
 
 function openAbout() {
   void router.push({ path: '/about' });
-}
-
-function openSourceRepository() {
-  openWindow(LANGCHAT_PRODUCT_LINKS.github, { target: '_blank' });
 }
 </script>
 
@@ -51,17 +44,9 @@ function openSourceRepository() {
         @click="openAbout"
       >
         <Info class="size-4 shrink-0" />
-        <span v-if="!collapsed" class="truncate">{{ $t('layout.product.about') }}</span>
-      </button>
-      <button
-        class="group flex h-9 w-full cursor-pointer items-center rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        :class="collapsed ? 'justify-center px-0' : 'gap-2.5 px-2'"
-        :title="$t('layout.product.githubTitle')"
-        type="button"
-        @click="openSourceRepository"
-      >
-        <SvgGithubIcon class="size-4 shrink-0" />
-        <span v-if="!collapsed" class="truncate">{{ $t('layout.product.github') }}</span>
+        <span v-if="!collapsed" class="truncate">
+          {{ $t('layout.product.about') }}
+        </span>
       </button>
     </div>
   </div>

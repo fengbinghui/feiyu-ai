@@ -5,12 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
-import {
-  ArrowRight,
-  Bot,
-  Search,
-  SvgGithubIcon,
-} from '@vben/icons';
+import { ArrowRight, Bot, Search } from '@vben/icons';
 import { $t } from '@vben/locales';
 import { preferences, usePreferences } from '@vben/preferences';
 
@@ -18,10 +13,7 @@ import { NInput, NSpin } from 'naive-ui';
 
 import { message } from '#/adapter/naive';
 import { agentApi } from '#/api/aigc/agent';
-import {
-  LANGCHAT_PRODUCT_LINKS,
-  LANGCHAT_PRODUCT_TEAM,
-} from '#/constants/product';
+import { FEIYU_PRODUCT_TEAM } from '#/constants/product';
 import { useAigcLookups } from '#/views/shared/aigc/lookups';
 
 import MarketCard from './card.vue';
@@ -127,9 +119,9 @@ onMounted(() => {
                   {{ $t('market.title') }}
                 </h1>
                 <span
-                  class="rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary"
+                  class="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-primary"
                 >
-                  {{ $t('market.openSourceLabel') }}
+                  {{ $t('market.agentLabel') }}
                 </span>
               </div>
               <p class="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -140,7 +132,7 @@ onMounted(() => {
               >
                 <span class="inline-flex items-center gap-1.5">
                   <span class="size-1.5 rounded-full bg-emerald-500"></span>
-                  {{ $t('market.maintainer', { team: LANGCHAT_PRODUCT_TEAM }) }}
+                  {{ $t('market.maintainer', { team: FEIYU_PRODUCT_TEAM }) }}
                 </span>
                 <span>{{
                   $t('market.publishedCount', {
@@ -152,15 +144,6 @@ onMounted(() => {
           </div>
 
           <div class="flex shrink-0 flex-wrap items-center gap-2">
-            <a
-              class="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background/70 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-              :href="LANGCHAT_PRODUCT_LINKS.github"
-              rel="noopener"
-              target="_blank"
-            >
-              <SvgGithubIcon class="size-3.5" />
-              {{ $t('market.openSourceRepo') }}
-            </a>
             <button
               class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               type="button"
@@ -277,7 +260,7 @@ onMounted(() => {
             </button>
             <div class="mt-5 text-[11px] text-muted-foreground">
               {{
-                $t('market.openSourceFooter', { team: LANGCHAT_PRODUCT_TEAM })
+                $t('market.footer', { team: FEIYU_PRODUCT_TEAM })
               }}
             </div>
           </div>

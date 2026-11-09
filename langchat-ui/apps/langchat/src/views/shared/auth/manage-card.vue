@@ -1,5 +1,5 @@
 <!--
-  - © 2024-present LangChat团队. 版权所有.
+  - © 2026 肥鱼AI. 版权所有.
   -->
 <script lang="ts" setup>
 /**
