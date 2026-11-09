@@ -10,7 +10,9 @@ import cn.langchat.common.oss.model.OssUploadRequest;
 import cn.langchat.common.oss.service.OssService;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -39,6 +41,10 @@ import org.springframework.web.multipart.MultipartFile;
 public class AigcOssController {
 
     private static final long MAX_UPLOAD_SIZE = 20L * 1024 * 1024;
+    /** 聊天附件允许的扩展名：仅图片与 PDF。 */
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "png", "jpg", "jpeg", "webp", "gif", "bmp", "pdf"
+    );
 
     private final AigcOssService aigcOssService;
     private final OssService ossService;
@@ -107,6 +113,13 @@ public class AigcOssController {
         if (file.getSize() > MAX_UPLOAD_SIZE) {
             throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "上传文件不能超过 20 MB");
         }
+        String extension = resolveExtension(resolveOriginalFilename(file));
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BizException(
+                    CommonErrorCode.BAD_REQUEST.code(),
+                    "不支持的附件类型：" + (extension.isEmpty() ? "未知" : extension) + "，仅支持图片与 PDF"
+            );
+        }
     }
 
     private String resolveOriginalFilename(MultipartFile file) {
@@ -121,7 +134,7 @@ public class AigcOssController {
     private String resolveExtension(String filename) {
         int index = filename.lastIndexOf('.');
         return index > -1 && index < filename.length() - 1
-                ? filename.substring(index + 1).toLowerCase()
+                ? filename.substring(index + 1).toLowerCase(Locale.ROOT)
                 : "";
     }
 

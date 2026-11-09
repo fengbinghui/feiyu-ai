@@ -1,5 +1,6 @@
 package cn.langchat.aigc.api.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcVectorStore;
 import cn.langchat.aigc.biz.service.AigcVectorStoreService;
 import cn.langchat.aigc.biz.support.VectorStoreSupport;
@@ -9,6 +10,7 @@ import cn.langchat.common.exception.BizException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,18 +30,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/aigc/vector-stores")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:vector-store:list")
 public class AigcVectorStoreController {
 
     private final AigcVectorStoreService aigcVectorStoreService;
 
     @GetMapping
     public ApiResponse<List<AigcVectorStore>> list() {
-        return ApiResponse.success(aigcVectorStoreService.lambdaQuery().orderByDesc(AigcVectorStore::getCreateTime).list());
+        List<AigcVectorStore> vectorStores =
+                aigcVectorStoreService.lambdaQuery().orderByDesc(AigcVectorStore::getCreateTime).list();
+        // 敏感字段脱敏：接口不返回完整密码。
+        vectorStores.forEach(store -> store.setPassword(maskSecret(store.getPassword())));
+        return ApiResponse.success(vectorStores);
     }
 
     @GetMapping("/{id}")
     public ApiResponse<AigcVectorStore> detail(@PathVariable("id") String id) {
-        return ApiResponse.success(aigcVectorStoreService.getById(id));
+        AigcVectorStore vectorStore = aigcVectorStoreService.getById(id);
+        if (vectorStore != null) {
+            vectorStore.setPassword(maskSecret(vectorStore.getPassword()));
+        }
+        return ApiResponse.success(vectorStore);
     }
 
     @PostMapping
@@ -53,6 +64,11 @@ public class AigcVectorStoreController {
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcVectorStore vectorStore) {
         vectorStore.setId(id);
         log.info("更新向量库，id={}", id);
+        // 前端回显的是脱敏后的密码（含 *）或未传，此时保留数据库中的原始密码。
+        if (isMaskedOrBlank(vectorStore.getPassword())) {
+            AigcVectorStore existing = aigcVectorStoreService.getById(id);
+            vectorStore.setPassword(existing == null ? null : existing.getPassword());
+        }
         validateVectorStore(vectorStore);
         return ApiResponse.success(aigcVectorStoreService.updateById(vectorStore));
     }
@@ -83,5 +99,23 @@ public class AigcVectorStoreController {
         if (vectorStore.getDimension() == null || vectorStore.getDimension() <= 0) {
             throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "向量库维度必须大于 0");
         }
+    }
+
+    /**
+     * 敏感信息脱敏：保留前 3 位与后 4 位，过短的密码直接返回 ****。
+     */
+    private String maskSecret(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        String secret = value.trim();
+        if (secret.length() < 8) {
+            return "****";
+        }
+        return secret.substring(0, 3) + "****" + secret.substring(secret.length() - 4);
+    }
+
+    private boolean isMaskedOrBlank(String password) {
+        return !StringUtils.hasText(password) || password.contains("*");
     }
 }

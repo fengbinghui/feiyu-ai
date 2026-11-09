@@ -1,5 +1,6 @@
 package cn.langchat.auth.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.auth.entity.AigcRole;
 import cn.langchat.auth.service.AigcRoleService;
 import cn.langchat.common.core.ApiResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth/roles")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("langchat:role:list")
 public class AigcRoleController {
 
     private final AigcRoleService aigcRoleService;

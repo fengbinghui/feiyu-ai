@@ -1,6 +1,8 @@
 package cn.langchat.core.runtime.mcp;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -32,4 +34,12 @@ public class McpProperties {
      * 默认工具执行超时（MCP 未配置超时时间时使用）。
      */
     private Duration toolExecutionTimeout = Duration.ofSeconds(30);
+
+    /**
+     * 允许以 STDIO 模式启动的 Docker 镜像白名单（逗号分隔）。
+     *
+     * <p>默认空表示全部禁止：只有显式配置的镜像才允许通过 STDIO 启动本地 MCP 服务，
+     * 避免任意 Docker 镜像在服务器上执行。</p>
+     */
+    private List<String> stdioImageWhitelist = new ArrayList<>();
 }

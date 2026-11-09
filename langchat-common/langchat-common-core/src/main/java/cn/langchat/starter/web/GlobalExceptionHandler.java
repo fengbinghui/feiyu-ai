@@ -1,6 +1,8 @@
 package cn.langchat.starter.web;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import cn.dev33.satoken.exception.SaTokenException;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
@@ -24,10 +26,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    /** 登录失败风控错误码前缀，映射为 HTTP 429。 */
+    private static final String RATE_LIMIT_CODE_PREFIX = "AUTH_LOGIN_RATE_LIMIT";
+
+    private static final String FORBIDDEN_CODE_PREFIX = "FORBIDDEN";
+    private static final String AUTH_CODE_PREFIX = "AUTH_";
+
     @ExceptionHandler(BizException.class)
     public ResponseEntity<ApiResponse<Void>> handleBizException(BizException exception) {
-        HttpStatus status = exception.getCode().startsWith("AUTH_") ? HttpStatus.UNAUTHORIZED : HttpStatus.BAD_REQUEST;
-        log.info("业务异常响应，code={}, message={}", exception.getCode(), exception.getMessage());
+        HttpStatus status = resolveHttpStatus(exception.getCode());
+        log.info("业务异常响应，code={}, message={}", exception.getCode(), exception.getMessage(), exception);
         return ResponseEntity.status(status).body(ApiResponse.failure(exception.getCode(), exception.getMessage()));
     }
 
@@ -45,17 +53,50 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.BAD_REQUEST.code(), exception.getMessage()));
     }
 
+    /**
+     * 无权限 / 无角色：返回 403，而不是笼统的 401。
+     */
+    @ExceptionHandler({NotPermissionException.class, NotRoleException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotPermissionException(RuntimeException exception) {
+        log.info("权限校验失败，message={}", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.failure(CommonErrorCode.FORBIDDEN));
+    }
+
     @ExceptionHandler({NotLoginException.class, SaTokenException.class})
     public ResponseEntity<ApiResponse<Void>> handleSaTokenException(RuntimeException exception) {
         log.info("认证异常，message={}", exception.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.failure(CommonErrorCode.UNAUTHORIZED.code(), exception.getMessage()));
+                .body(ApiResponse.failure(CommonErrorCode.UNAUTHORIZED));
     }
 
+    /**
+     * 兜底异常：对外只返回通用文案，避免泄露堆栈/内部实现细节；requestId 仍随响应返回便于排查。
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
         log.error("系统异常", exception);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.failure(CommonErrorCode.INTERNAL_ERROR.code(), exception.getMessage()));
+                .body(ApiResponse.failure(CommonErrorCode.INTERNAL_ERROR.code(), CommonErrorCode.INTERNAL_ERROR.message()));
+    }
+
+    /**
+     * 业务错误码到 HTTP 状态码的映射：
+     * 登录风控 → 429；FORBIDDEN_ → 403；AUTH_ → 401；其余 → 400。
+     */
+    private HttpStatus resolveHttpStatus(String code) {
+        if (code == null || code.isBlank()) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        if (code.startsWith(RATE_LIMIT_CODE_PREFIX)) {
+            return HttpStatus.TOO_MANY_REQUESTS;
+        }
+        if (code.startsWith(FORBIDDEN_CODE_PREFIX)) {
+            return HttpStatus.FORBIDDEN;
+        }
+        if (code.startsWith(AUTH_CODE_PREFIX)) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+        return HttpStatus.BAD_REQUEST;
     }
 }

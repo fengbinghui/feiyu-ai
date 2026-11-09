@@ -13,6 +13,7 @@ import cn.langchat.auth.infrastructure.LocalUserAccountRepository;
 import cn.langchat.auth.model.request.AuthLoginRequest;
 import cn.langchat.auth.model.response.AuthCurrentUserResponse;
 import cn.langchat.auth.model.response.AuthLoginResponse;
+import cn.langchat.auth.security.LoginAttemptService;
 import cn.langchat.auth.service.AigcMenuService;
 import cn.langchat.auth.service.AigcRoleMenuService;
 import cn.langchat.auth.service.AigcRoleService;
@@ -21,12 +22,15 @@ import cn.langchat.auth.service.AigcUserService;
 import cn.langchat.auth.service.AuthService;
 import cn.langchat.common.core.CommonErrorCode;
 import cn.langchat.common.exception.BizException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -47,17 +51,40 @@ public class AuthServiceImpl implements AuthService {
     private final AigcRoleMenuService roleMenuService;
     private final LocalUserAccountRepository localUserAccountRepository;
     private final AuthProperties authProperties;
+    private final LoginAttemptService loginAttemptService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public AuthLoginResponse login(AuthLoginRequest request) {
-        AuthUserProfile account = findByUsername(request.username())
-                .filter(candidate -> candidate.password() != null && candidate.password().equals(request.password()))
-                .or(() -> localUserAccountRepository.findByUsername(request.username())
-                        .filter(candidate -> candidate.password().equals(request.password()))
-                        .map(this::toProfile))
-                .orElseThrow(() -> new BizException(CommonErrorCode.AUTH_INVALID_CREDENTIALS));
+        String username = request.username();
+        // 登录风控：命中锁定期直接返回 429，避免继续尝试猜测密码。
+        loginAttemptService.checkAllowed(username);
 
-        // 登录成功后写入 Sa-Token 会话，后续接口统一走会话态获取当前用户。
+        // 数据库用户优先：历史明文密码在登录成功后平滑升级为 BCrypt。
+        AigcUser dbUser = userService.lambdaQuery()
+                .eq(AigcUser::getUsername, username)
+                .one();
+        if (dbUser != null && passwordMatches(request.password(), dbUser.getPassword())) {
+            upgradePasswordIfNeeded(dbUser, request.password());
+            return doLogin(toProfile(dbUser));
+        }
+
+        // 数据库账户体系未初始化时的本地配置兜底账户，同样兼容 BCrypt 与历史明文。
+        Optional<LocalUserAccount> localAccount = localUserAccountRepository.findByUsername(username)
+                .filter(candidate -> passwordMatches(request.password(), candidate.password()));
+        if (localAccount.isPresent()) {
+            return doLogin(toProfile(localAccount.get()));
+        }
+
+        loginAttemptService.recordFailure(username);
+        throw new BizException(CommonErrorCode.AUTH_INVALID_CREDENTIALS);
+    }
+
+    /**
+     * 登录成功后写入 Sa-Token 会话，后续接口统一走会话态获取当前用户。
+     */
+    private AuthLoginResponse doLogin(AuthUserProfile account) {
+        loginAttemptService.recordSuccess(account.username());
         StpUtil.login(account.userId());
         log.info("用户登录成功，userId={}, username={}", account.userId(), account.username());
         return new AuthLoginResponse(
@@ -70,6 +97,40 @@ public class AuthServiceImpl implements AuthService {
                 account.roles(),
                 account.permissions()
         );
+    }
+
+    /**
+     * 密码校验：BCrypt 哈希走 encoder，历史明文走常量时间比较（兼容旧数据）。
+     */
+    private boolean passwordMatches(String rawPassword, String storedPassword) {
+        if (rawPassword == null || storedPassword == null || storedPassword.isEmpty()) {
+            return false;
+        }
+        if (isBcrypt(storedPassword)) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+        return MessageDigest.isEqual(
+                rawPassword.getBytes(StandardCharsets.UTF_8),
+                storedPassword.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    /**
+     * 历史明文密码平滑迁移：首次校验通过后立即替换为 BCrypt 哈希。
+     */
+    private void upgradePasswordIfNeeded(AigcUser user, String rawPassword) {
+        if (isBcrypt(user.getPassword())) {
+            return;
+        }
+        AigcUser patch = new AigcUser();
+        patch.setId(user.getId());
+        patch.setPassword(passwordEncoder.encode(rawPassword));
+        userService.updateById(patch);
+        log.info("检测到历史明文密码，已升级为 BCrypt，userId={}, username={}", user.getId(), user.getUsername());
+    }
+
+    private boolean isBcrypt(String password) {
+        return password != null && password.startsWith("$2");
     }
 
     @Override
@@ -108,12 +169,6 @@ public class AuthServiceImpl implements AuthService {
         return Optional.ofNullable(userService.getById(userId))
                 .map(this::toProfile)
                 .or(() -> localUserAccountRepository.findByUserId(userId).map(this::toProfile));
-    }
-
-    private Optional<AuthUserProfile> findByUsername(String username) {
-        return Optional.ofNullable(userService.lambdaQuery()
-                .eq(AigcUser::getUsername, username)
-                .one()).map(this::toProfile);
     }
 
     private AuthUserProfile toProfile(AigcUser user) {

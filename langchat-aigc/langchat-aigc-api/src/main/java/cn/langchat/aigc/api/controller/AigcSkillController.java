@@ -1,5 +1,6 @@
 package cn.langchat.aigc.api.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcSkill;
 import cn.langchat.aigc.biz.service.AigcSkillService;
 import cn.langchat.aigc.biz.service.SkillPackageService;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +43,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/aigc/skills")
+@SaCheckPermission("aigc:skill:list")
 public class AigcSkillController {
+
+    /** 技能 zip 包上传上限：50 MB。 */
+    private static final long MAX_PACKAGE_SIZE = 50L * 1024 * 1024;
+    /** 技能文件夹上传时单个文件上限：10 MB。 */
+    private static final long MAX_FOLDER_FILE_SIZE = 10L * 1024 * 1024;
 
     private final AigcSkillService aigcSkillService;
     private final SkillPackageService skillPackageService;
@@ -92,6 +100,7 @@ public class AigcSkillController {
     public ApiResponse<AigcSkill> uploadPackage(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "tags", required = false) String tags) throws IOException {
+        validatePackageUpload(file);
         String filename = StringUtils.hasText(file.getOriginalFilename())
                 ? file.getOriginalFilename()
                 : "skill-package.zip";
@@ -117,7 +126,9 @@ public class AigcSkillController {
             if (!StringUtils.hasText(path)) {
                 continue;
             }
-            fileMap.put(path, files.get(index).getBytes());
+            MultipartFile uploadFile = files.get(index);
+            validateFolderUpload(uploadFile);
+            fileMap.put(path, uploadFile.getBytes());
             String normalized = path.replace('\\', '/');
             int separator = normalized.indexOf('/');
             if (separator > 0 && rootName == null) {
@@ -185,5 +196,34 @@ public class AigcSkillController {
             throw new BizException("SKILL_NOT_FOUND", "技能不存在");
         }
         return skill;
+    }
+
+    /**
+     * 校验技能 zip 包上传：仅允许 .zip 且不超过 50 MB。
+     */
+    private void validatePackageUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BizException("SKILL_UPLOAD_INVALID", "上传文件不能为空");
+        }
+        if (file.getSize() > MAX_PACKAGE_SIZE) {
+            throw new BizException("SKILL_UPLOAD_INVALID", "技能包不能超过 50 MB");
+        }
+        String filename = file.getOriginalFilename();
+        String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
+        if (!lower.endsWith(".zip")) {
+            throw new BizException("SKILL_UPLOAD_INVALID", "技能包仅支持 .zip 格式");
+        }
+    }
+
+    /**
+     * 校验技能文件夹上传：单个文件不超过 10 MB，且路径非空。
+     */
+    private void validateFolderUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BizException("SKILL_UPLOAD_INVALID", "上传文件不能为空");
+        }
+        if (file.getSize() > MAX_FOLDER_FILE_SIZE) {
+            throw new BizException("SKILL_UPLOAD_INVALID", "文件夹上传时单个文件不能超过 10 MB");
+        }
     }
 }

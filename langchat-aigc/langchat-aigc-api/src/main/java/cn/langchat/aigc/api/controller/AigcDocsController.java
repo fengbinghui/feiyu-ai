@@ -1,5 +1,6 @@
 package cn.langchat.aigc.api.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcDocs;
 import cn.langchat.aigc.biz.entity.AigcKnowledge;
 import cn.langchat.aigc.biz.entity.AigcOss;
@@ -14,6 +15,8 @@ import cn.langchat.common.oss.model.OssUploadRequest;
 import cn.langchat.common.oss.service.OssService;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -39,10 +42,18 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/aigc/docs")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:knowledge:list")
 public class AigcDocsController {
 
     private static final String DEFAULT_DOC_TYPE = "FILE";
     private static final String DEFAULT_OSS_PLATFORM = "LOCAL";
+    /** 单文件上传上限：100 MB。 */
+    private static final long MAX_UPLOAD_SIZE = 100L * 1024 * 1024;
+    /** 文档上传扩展名白名单。 */
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "md", "markdown", "txt", "csv", "html", "htm", "json"
+    );
 
     private final AigcDocsService aigcDocsService;
     private final AigcKnowledgeService aigcKnowledgeService;
@@ -135,6 +146,16 @@ public class AigcDocsController {
         if (file == null || file.isEmpty()) {
             throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "上传文件不能为空");
         }
+        if (file.getSize() > MAX_UPLOAD_SIZE) {
+            throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "单个文档不能超过 100 MB");
+        }
+        String extension = resolveExtension(resolveOriginalFilename(file));
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BizException(
+                    CommonErrorCode.BAD_REQUEST.code(),
+                    "不支持的文件类型：" + (extension.isEmpty() ? "未知" : extension)
+            );
+        }
         if (!StringUtils.hasText(knowledgeId)) {
             throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "知识库 ID 不能为空");
         }
@@ -223,7 +244,7 @@ public class AigcDocsController {
         if (index < 0 || index == originalFilename.length() - 1) {
             return "";
         }
-        return originalFilename.substring(index + 1).toLowerCase();
+        return originalFilename.substring(index + 1).toLowerCase(Locale.ROOT);
     }
 
     private int safeFileSize(long fileSize) {

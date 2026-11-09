@@ -1,5 +1,6 @@
 package cn.langchat.core.chat.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.core.chat.model.request.DataAnalysisRequest;
 import cn.langchat.core.chat.model.response.DataAnalysisCatalogItem;
@@ -21,6 +22,7 @@ import reactor.core.publisher.Flux;
 @RestController
 @RequestMapping("/api/v1/core/data-analysis")
 @RequiredArgsConstructor
+@SaCheckPermission("aigc:data-analysis:use")
 public class DataAnalysisController {
 
     private final DataAnalysisService dataAnalysisService;

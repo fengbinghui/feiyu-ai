@@ -1,5 +1,6 @@
 package cn.langchat.core.image.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.ai.model.ImageGenerationRequest;
 import cn.langchat.common.ai.model.ImageGenerationResult;
 import cn.langchat.common.ai.service.ImageAiService;
@@ -33,6 +34,7 @@ public class ImageController {
      * 图片生成。
      */
     @PostMapping("/generate")
+    @SaCheckPermission("aigc:studio:image")
     public ApiResponse<ImageGenerationResult> generate(@RequestBody ImageGenerateRequest request) {
         log.info("图片生成请求，modelId={}, size={}, n={}", request.getModelId(), request.getSize(), request.getN());
         ImageGenerationRequest payload = new ImageGenerationRequest(
@@ -49,6 +51,7 @@ public class ImageController {
      * 图片识别 (OCR)。
      */
     @PostMapping("/recognition")
+    @SaCheckPermission("aigc:studio:ocr")
     public ApiResponse<Map<String, String>> recognition(@RequestBody ImageRecognizeRequest request) {
         log.info("图片识别请求，modelId={}", request.getModelId());
         String text = imageAiService.recognizeText(request.getModelId(), request.getPrompt(), request.getImage());

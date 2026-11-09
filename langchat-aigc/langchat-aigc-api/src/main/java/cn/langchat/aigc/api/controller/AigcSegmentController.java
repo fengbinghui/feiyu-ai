@@ -1,5 +1,6 @@
 package cn.langchat.aigc.api.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcSegment;
 import cn.langchat.aigc.biz.service.AigcSegmentService;
 import cn.langchat.common.core.ApiResponse;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/aigc/segments")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:knowledge:list")
 public class AigcSegmentController {
 
     private final AigcSegmentService aigcSegmentService;

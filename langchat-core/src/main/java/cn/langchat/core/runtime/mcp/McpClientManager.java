@@ -186,6 +186,11 @@ public class McpClientManager implements DisposableBean {
     }
 
     private List<String> buildDockerCommand(AigcMcp mcp) {
+        String dockerImage = mcp.getDockerImage().trim();
+        // STDIO 模式会启动本地 Docker 容器并执行镜像内命令，必须命中白名单才允许。
+        if (!isStdioImageAllowed(dockerImage)) {
+            throw new BizException("MCP_STDIO_DISABLED", "MCP STDIO 模式未启用：Docker 镜像不在白名单内：" + dockerImage);
+        }
         List<String> command = new ArrayList<>();
         command.add("docker");
         if (StringUtils.hasText(mcp.getDockerHost())) {
@@ -195,8 +200,22 @@ public class McpClientManager implements DisposableBean {
         command.add("run");
         command.add("--rm");
         command.add("-i");
-        command.add(mcp.getDockerImage().trim());
+        command.add(dockerImage);
         return command;
+    }
+
+    /**
+     * 判断 Docker 镜像是否命中 STDIO 白名单（精确匹配，白名单默认空 = 全部禁止）。
+     */
+    private boolean isStdioImageAllowed(String dockerImage) {
+        List<String> whitelist = mcpProperties.getStdioImageWhitelist();
+        if (whitelist == null || whitelist.isEmpty()) {
+            return false;
+        }
+        return whitelist.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .anyMatch(dockerImage::equals);
     }
 
     private Map<String, String> parseHeaders(String headersJson) {

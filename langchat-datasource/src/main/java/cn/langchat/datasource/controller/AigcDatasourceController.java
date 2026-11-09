@@ -1,5 +1,6 @@
 package cn.langchat.datasource.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.datasource.entity.AigcDatasource;
 import cn.langchat.datasource.model.DatabaseStructure;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,20 +32,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/datasources")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:datasource:list")
 public class AigcDatasourceController {
 
     private final AigcDatasourceService aigcDatasourceService;
 
     @GetMapping
     public ApiResponse<List<AigcDatasource>> list() {
-        return ApiResponse.success(
-                aigcDatasourceService.lambdaQuery().orderByDesc(AigcDatasource::getCreateTime).list()
-        );
+        List<AigcDatasource> datasources = aigcDatasourceService.lambdaQuery()
+                .orderByDesc(AigcDatasource::getCreateTime)
+                .list();
+        // 敏感字段脱敏：接口不返回完整数据库密码。
+        datasources.forEach(datasource -> datasource.setPassword(maskSecret(datasource.getPassword())));
+        return ApiResponse.success(datasources);
     }
 
     @GetMapping("/{id}")
     public ApiResponse<AigcDatasource> detail(@PathVariable("id") String id) {
-        return ApiResponse.success(aigcDatasourceService.getById(id));
+        AigcDatasource datasource = aigcDatasourceService.getById(id);
+        if (datasource != null) {
+            datasource.setPassword(maskSecret(datasource.getPassword()));
+        }
+        return ApiResponse.success(datasource);
     }
 
     @PostMapping
@@ -54,6 +64,11 @@ public class AigcDatasourceController {
     @PutMapping("/{id}")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcDatasource datasource) {
         datasource.setId(id);
+        // 前端回显的是脱敏后的密码（含 *）或未传，此时保留数据库中的原始密码。
+        if (isMaskedOrBlank(datasource.getPassword())) {
+            AigcDatasource existing = aigcDatasourceService.getById(id);
+            datasource.setPassword(existing == null ? null : existing.getPassword());
+        }
         return ApiResponse.success(aigcDatasourceService.updateById(datasource));
     }
 
@@ -94,5 +109,23 @@ public class AigcDatasourceController {
     @PutMapping("/{id}/structure")
     public ApiResponse<Boolean> saveStructure(@PathVariable("id") String id, @RequestBody SaveStructureRequest request) {
         return ApiResponse.success(aigcDatasourceService.saveStructure(id, request.structureJson()));
+    }
+
+    /**
+     * 敏感信息脱敏：保留前 3 位与后 4 位，过短的密码直接返回 ****。
+     */
+    private String maskSecret(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        String secret = value.trim();
+        if (secret.length() < 8) {
+            return "****";
+        }
+        return secret.substring(0, 3) + "****" + secret.substring(secret.length() - 4);
+    }
+
+    private boolean isMaskedOrBlank(String password) {
+        return !StringUtils.hasText(password) || password.contains("*");
     }
 }

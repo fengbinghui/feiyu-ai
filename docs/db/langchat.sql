@@ -399,11 +399,11 @@ CREATE TABLE `aigc_vector_store` (
 
 -- ----------------------------
 -- Mock data for local development
--- 执行完成后可直接使用 admin / 123456 登录
+-- 执行完成后可直接使用 admin / 123456 登录（初始密码已使用 BCrypt 哈希存储）
 -- ----------------------------
 
 INSERT INTO `aigc_role` (`id`, `name`, `code`, `description`, `creator`, `updater`, `create_time`, `update_time`) VALUES
-('role_admin', '超级管理员', 'ADMIN', 'LangChat 系统内置管理员角色，拥有全部权限（内置角色，不可编辑/删除）', 'system', 'system', 1774310400000, 1774310400000),
+('role_admin', '超级管理员', 'ADMIN', '肥鱼AI 系统内置管理员角色，拥有全部权限（内置角色，不可编辑/删除）', 'system', 'system', 1774310400000, 1774310400000),
 ('role_user', '普通用户', 'USER', '业务使用者：可使用智能应用、知识库与智能问数', 'system', 'system', 1774310400000, 1774310400000),
 ('role_ops', '运维管理员', 'OPS', '负责模型、向量存储、技能、MCP 与数据源等基础能力运维', 'system', 'system', 1774310400000, 1774310400000),
 ('role_analyst', '数据分析师', 'ANALYST', '面向智能问数与数据洞察场景的分析角色', 'system', 'system', 1774310400000, 1774310400000);
@@ -431,7 +431,7 @@ INSERT INTO `aigc_role_menu` (`role_id`, `menu_id`, `creator`, `updater`, `creat
 ('role_analyst', 'menu_datasource_detail', 'system', 'system', 1774310400000, 1774310400000);
 
 INSERT INTO `aigc_user` (`id`, `username`, `password`, `real_name`, `sex`, `phone`, `email`, `avatar`, `status`, `dept_id`, `creator`, `updater`, `create_time`, `update_time`) VALUES
-('user_admin', 'admin', '123456', 'LangChat 管理员', 'UNKNOWN', '13800138000', 'admin@langchat.local', 'https://api.dicebear.com/9.x/glass/svg?seed=LangChat', 1, NULL, 'system', 'system', 1774310400000, 1774310400000);
+('user_admin', 'admin', '$2a$10$rM7gI3Qs5qIL7gj1xkWjueF69JBXgOuwQc4Z/9E73TWo8euyJpSAC', '肥鱼AI 管理员', 'UNKNOWN', '13800138000', 'admin@feiyu.ai', 'NULL', 1, NULL, 'system', 'system', 1774310400000, 1774310400000);
 
 INSERT INTO `aigc_user_role` (`user_id`, `role_id`, `creator`, `updater`, `create_time`, `update_time`) VALUES
 ('user_admin', 'role_admin', 'system', 'system', 1774310400000, 1774310400000);

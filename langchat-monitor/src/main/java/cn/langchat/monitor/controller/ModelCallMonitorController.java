@@ -1,5 +1,6 @@
 package cn.langchat.monitor.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.monitor.model.response.ModelCallOverviewResponse;
 import cn.langchat.monitor.service.ModelCallStatisticsService;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/monitor/model-calls")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:monitor:model-call")
 public class ModelCallMonitorController {
 
     private final ModelCallStatisticsService modelCallStatisticsService;

@@ -1,5 +1,6 @@
 package cn.langchat.aigc.api.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcAgent;
 import cn.langchat.aigc.biz.service.AigcAgentService;
 import cn.langchat.common.core.ApiResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/aigc/agents")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:agent:list")
 public class AigcAgentController {
 
     private final AigcAgentService aigcAgentService;

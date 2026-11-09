@@ -1,5 +1,6 @@
 package cn.langchat.auth.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.auth.entity.AigcMenu;
 import cn.langchat.auth.model.response.AigcMenuTreeNode;
 import cn.langchat.auth.service.AigcMenuService;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth/menus")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("langchat:menu:list")
 public class AigcMenuController {
 
     private final AigcMenuService aigcMenuService;

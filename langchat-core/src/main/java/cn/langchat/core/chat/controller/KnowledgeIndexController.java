@@ -1,5 +1,6 @@
 package cn.langchat.core.chat.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.core.chat.model.request.KnowledgeIndexRequest;
 import cn.langchat.core.chat.model.request.KnowledgeParsePreviewRequest;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/core/knowledges")
 @RequiredArgsConstructor
 @Slf4j
+@SaCheckPermission("aigc:knowledge:list")
 public class KnowledgeIndexController {
 
     private final KnowledgeIndexRuntimeService knowledgeIndexRuntimeService;

@@ -31,6 +31,14 @@ sa-token:
   is-print: false
 
 langchat:
+  # 登录失败风控（无 Redis，单机内存实现）：窗口内连续失败达到上限后锁定账号
+  auth:
+    login-max-attempts: ${LANGCHAT_LOGIN_MAX_ATTEMPTS:5}
+    login-fail-window-minutes: ${LANGCHAT_LOGIN_FAIL_WINDOW_MINUTES:10}
+    login-lock-minutes: ${LANGCHAT_LOGIN_LOCK_MINUTES:10}
+  web:
+    # 允许跨域访问的前端来源（逗号分隔）
+    cors-allowed-origins: ${LANGCHAT_CORS_ALLOWED_ORIGINS:http://localhost:5888,http://127.0.0.1:5888}
   storage:
     type: local
     local-base-dir: /tmp/langchat-oss
@@ -50,3 +58,5 @@ langchat:
     session-ttl: 1h
     sweep-interval: 5m
     tool-execution-timeout: 30s
+    # STDIO 模式允许启动的 Docker 镜像白名单（逗号分隔，默认空 = 全部禁止）
+    stdio-image-whitelist: ${LANGCHAT_MCP_STDIO_IMAGE_WHITELIST:}

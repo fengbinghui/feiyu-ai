@@ -23,6 +23,21 @@ public class AuthProperties {
     private String superAdminUsername;
 
     /**
+     * 连续登录失败上限，达到后锁定账号。
+     */
+    private int loginMaxAttempts = 5;
+
+    /**
+     * 登录失败计数窗口（分钟）：窗口外的一次失败会重新开始计数。
+     */
+    private int loginFailWindowMinutes = 10;
+
+    /**
+     * 账号锁定时长（分钟）。
+     */
+    private int loginLockMinutes = 10;
+
+    /**
      * 本地兜底账户列表。
      */
     private List<LocalUserProperties> localUsers = new ArrayList<>();

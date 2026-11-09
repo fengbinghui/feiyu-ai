@@ -37,6 +37,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @SaCheckLogin
     public ApiResponse<Void> logout() {
         authService.logout();
         return ApiResponse.success(null);
