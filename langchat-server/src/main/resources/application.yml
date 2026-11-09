@@ -30,6 +30,17 @@ sa-token:
   is-log: false
   is-print: false
 
+# OpenAPI 3 文档（可通过环境变量关闭）
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
 langchat:
   # 登录失败风控（无 Redis，单机内存实现）：窗口内连续失败达到上限后锁定账号
   auth:
@@ -64,3 +75,11 @@ langchat:
     tool-execution-timeout: 30s
     # STDIO 模式允许启动的 Docker 镜像白名单（逗号分隔，默认空 = 全部禁止）
     stdio-image-whitelist: ${LANGCHAT_MCP_STDIO_IMAGE_WHITELIST:}
+  monitor:
+    # 每日 Token 配额（0 = 不限制），用于用量分析 quota.usagePercent 计算
+    daily-token-limit: ${LANGCHAT_MONITOR_DAILY_TOKEN_LIMIT:0}
+    # 模型调用日志线程池配置
+    model-call-log:
+      core-pool-size: 1
+      max-pool-size: 2
+      queue-capacity: 500

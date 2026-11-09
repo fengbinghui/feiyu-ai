@@ -4,6 +4,7 @@ import cn.langchat.auth.config.AuthProperties;
 import cn.langchat.common.exception.BizException;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,9 @@ public class LoginAttemptService {
 
     private final AuthProperties authProperties;
 
+    /** 当前时间来源（便于单元测试注入固定时钟）。 */
+    private LongSupplier clock = System::currentTimeMillis;
+
     /** username（小写归一化） -> 失败记录。 */
     private final ConcurrentHashMap<String, Attempt> attempts = new ConcurrentHashMap<>();
 
@@ -44,7 +48,7 @@ public class LoginAttemptService {
         if (attempt == null) {
             return;
         }
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
         Long lockUntil = attempt.lockUntil;
         if (lockUntil == null) {
             return;
@@ -87,7 +91,7 @@ public class LoginAttemptService {
             return;
         }
         String key = key(username);
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
         int maxAttempts = Math.max(1, authProperties.getLoginMaxAttempts());
         long windowMillis = Math.max(1, authProperties.getLoginFailWindowMinutes()) * 60_000L;
         long lockMillis = Math.max(1, authProperties.getLoginLockMinutes()) * 60_000L;

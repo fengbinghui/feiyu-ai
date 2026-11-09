@@ -2,6 +2,8 @@ package cn.langchat.datasource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.datasource.entity.AigcDatasource;
 import cn.langchat.datasource.model.DatabaseStructure;
 import cn.langchat.datasource.model.SaveStructureRequest;
@@ -57,11 +59,13 @@ public class AigcDatasourceController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.DATASOURCE, action = "新增数据源")
     public ApiResponse<Boolean> create(@RequestBody AigcDatasource datasource) {
         return ApiResponse.success(aigcDatasourceService.save(datasource));
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.DATASOURCE, action = "更新数据源")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcDatasource datasource) {
         datasource.setId(id);
         // 前端回显的是脱敏后的密码（含 *）或未传，此时保留数据库中的原始密码。
@@ -73,6 +77,7 @@ public class AigcDatasourceController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.DATASOURCE, action = "删除数据源")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         return ApiResponse.success(aigcDatasourceService.removeById(id));
     }
@@ -81,6 +86,7 @@ public class AigcDatasourceController {
      * 测试连接。
      */
     @PostMapping("/test")
+    @AuditLog(type = AuditLogType.DATASOURCE, action = "测试数据源连接")
     public ApiResponse<Boolean> test(@RequestBody TestConnectionRequest request) {
         return ApiResponse.success(aigcDatasourceService.testConnection(request));
     }

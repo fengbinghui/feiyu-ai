@@ -6,6 +6,8 @@ import cn.langchat.aigc.biz.service.AigcConversationService;
 import cn.langchat.aigc.biz.service.AigcMessageService;
 import cn.langchat.common.auth.AuthUtil;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.common.exception.BizException;
 import cn.langchat.core.chat.enums.ChatRoleEnum;
 import cn.langchat.core.chat.model.request.AgentChatStreamRequest;
@@ -82,6 +84,7 @@ public class ChatController {
      * 创建会话（creator=当前用户；title 为空时使用「新会话 HH:mm」）。
      */
     @PostMapping("/conversations")
+    @AuditLog(type = AuditLogType.CHAT, action = "创建会话")
     public ApiResponse<AigcConversation> createConversation(@Valid @RequestBody ConversationCreateRequest request) {
         log.info("创建会话请求，agentId={}", request.agentId());
         return ApiResponse.success(chatConversationExtraService.createConversation(request));
@@ -91,6 +94,7 @@ public class ChatController {
      * 更新会话（兼容别名，仅支持更新 title，行为与 PUT /{id}/title 一致）。
      */
     @PutMapping("/conversations/{conversationId}")
+    @AuditLog(type = AuditLogType.CHAT, action = "更新会话")
     public ApiResponse<Boolean> updateConversation(
             @PathVariable("conversationId") String conversationId,
             @Valid @RequestBody ConversationTitleRequest request
@@ -103,6 +107,7 @@ public class ChatController {
      * 删除会话（级联删除该会话的消息与消息事件，仅 owner 可删除）。
      */
     @DeleteMapping("/conversations/{conversationId}")
+    @AuditLog(type = AuditLogType.CHAT, action = "删除会话")
     public ApiResponse<Boolean> deleteConversation(@PathVariable("conversationId") String conversationId) {
         log.info("删除会话请求，conversationId={}", conversationId);
         return ApiResponse.success(chatConversationExtraService.deleteConversation(conversationId));
@@ -174,6 +179,7 @@ public class ChatController {
      * 创建会话分享（幂等，已有 shareId 时复用）。
      */
     @PostMapping("/conversations/{conversationId}/share")
+    @AuditLog(type = AuditLogType.CHAT, action = "创建会话分享")
     public ApiResponse<ConversationShareResponse> createShare(@PathVariable("conversationId") String conversationId) {
         log.info("创建会话分享请求，conversationId={}", conversationId);
         return ApiResponse.success(chatConversationExtraService.createShare(conversationId));
@@ -183,6 +189,7 @@ public class ChatController {
      * 取消会话分享。
      */
     @DeleteMapping("/conversations/{conversationId}/share")
+    @AuditLog(type = AuditLogType.CHAT, action = "取消会话分享")
     public ApiResponse<Boolean> removeShare(@PathVariable("conversationId") String conversationId) {
         log.info("取消会话分享请求，conversationId={}", conversationId);
         return ApiResponse.success(chatConversationExtraService.removeShare(conversationId));
@@ -217,6 +224,7 @@ public class ChatController {
      * 更新会话标题。
      */
     @PutMapping("/conversations/{conversationId}/title")
+    @AuditLog(type = AuditLogType.CHAT, action = "更新会话标题")
     public ApiResponse<Boolean> updateTitle(
             @PathVariable("conversationId") String conversationId,
             @Valid @RequestBody ConversationTitleRequest request
@@ -229,6 +237,7 @@ public class ChatController {
      * 基于首轮对话生成会话标题（模型失败时降级为截断标题）。
      */
     @PostMapping("/conversations/{conversationId}/title/generate")
+    @AuditLog(type = AuditLogType.CHAT, action = "生成会话标题")
     public ApiResponse<ConversationTitleResponse> generateTitle(@PathVariable("conversationId") String conversationId) {
         log.info("生成会话标题请求，conversationId={}", conversationId);
         return ApiResponse.success(chatConversationExtraService.generateTitle(conversationId));

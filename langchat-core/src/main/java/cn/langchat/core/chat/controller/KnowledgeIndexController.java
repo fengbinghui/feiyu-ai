@@ -2,6 +2,8 @@ package cn.langchat.core.chat.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.core.chat.model.request.KnowledgeIndexRequest;
 import cn.langchat.core.chat.model.request.KnowledgeParsePreviewRequest;
 import cn.langchat.core.chat.model.response.KnowledgeIndexResult;
@@ -38,6 +40,7 @@ public class KnowledgeIndexController {
      * 执行知识库索引。
      */
     @PostMapping("/{knowledgeId}/index")
+    @AuditLog(type = AuditLogType.DOC, action = "文档向量化")
     public ApiResponse<KnowledgeIndexResult> indexKnowledge(
             @PathVariable("knowledgeId") String knowledgeId,
             @RequestBody(required = false) KnowledgeIndexRequest request

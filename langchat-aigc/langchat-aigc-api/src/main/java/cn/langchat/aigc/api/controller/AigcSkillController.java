@@ -8,6 +8,8 @@ import cn.langchat.aigc.biz.service.skill.SkillFileContent;
 import cn.langchat.common.exception.BizException;
 import cn.langchat.aigc.biz.service.skill.SkillFileNode;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -87,6 +89,7 @@ public class AigcSkillController {
      * 删除技能（本地工作区 + OSS 原始包 + 记录）。
      */
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.SKILL, action = "删除技能")
     public ApiResponse<Boolean> delete(@PathVariable("id") String id) {
         AigcSkill skill = requireSkill(id);
         skillPackageService.removePackage(skill);
@@ -97,6 +100,7 @@ public class AigcSkillController {
      * 上传 zip 技能包。
      */
     @PostMapping(value = "/upload/package", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @AuditLog(type = AuditLogType.SKILL, action = "上传技能包")
     public ApiResponse<AigcSkill> uploadPackage(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "tags", required = false) String tags) throws IOException {
@@ -112,6 +116,7 @@ public class AigcSkillController {
      * 上传文件夹技能包：files 与 paths 一一对应，paths 为浏览器提供的相对路径。
      */
     @PostMapping(value = "/upload/folder", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @AuditLog(type = AuditLogType.SKILL, action = "上传技能文件夹")
     public ApiResponse<AigcSkill> uploadFolder(
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam("paths") List<String> paths,

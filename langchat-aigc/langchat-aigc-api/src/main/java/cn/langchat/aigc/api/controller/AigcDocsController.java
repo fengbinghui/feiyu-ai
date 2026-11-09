@@ -10,6 +10,8 @@ import cn.langchat.aigc.biz.service.AigcKnowledgeService;
 import cn.langchat.aigc.biz.service.AigcOssService;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.common.exception.BizException;
 import cn.langchat.common.oss.model.OssObject;
 import cn.langchat.common.oss.model.OssUploadRequest;
@@ -80,6 +82,7 @@ public class AigcDocsController {
      * 上传知识库文档。
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @AuditLog(type = AuditLogType.DOC, action = "上传知识库文档")
     public ApiResponse<AigcDocs> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("knowledgeId") String knowledgeId,
@@ -140,6 +143,7 @@ public class AigcDocsController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.DOC, action = "删除知识库文档")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         AigcDocs docs = aigcDocsService.getById(id);
         boolean removed = aigcDocsService.removeById(id);

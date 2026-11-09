@@ -384,7 +384,7 @@ async function handleReset() {
                 v-model:header-enable="headerEnable"
                 v-model:header-menu-align="headerMenuAlign"
                 v-model:header-mode="headerMode"
-                :disabled="isFullContent || isFloatingMode"
+                :disabled="Boolean(isFullContent || isFloatingMode)"
               />
             </Block>
 

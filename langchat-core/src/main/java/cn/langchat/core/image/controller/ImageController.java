@@ -5,6 +5,8 @@ import cn.langchat.common.ai.model.ImageGenerationRequest;
 import cn.langchat.common.ai.model.ImageGenerationResult;
 import cn.langchat.common.ai.service.ImageAiService;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class ImageController {
      */
     @PostMapping("/generate")
     @SaCheckPermission("aigc:studio:image")
+    @AuditLog(type = AuditLogType.CHAT, action = "图片生成")
     public ApiResponse<ImageGenerationResult> generate(@RequestBody ImageGenerateRequest request) {
         log.info("图片生成请求，modelId={}, size={}, n={}", request.getModelId(), request.getSize(), request.getN());
         ImageGenerationRequest payload = new ImageGenerationRequest(
@@ -52,6 +55,7 @@ public class ImageController {
      */
     @PostMapping("/recognition")
     @SaCheckPermission("aigc:studio:ocr")
+    @AuditLog(type = AuditLogType.CHAT, action = "图片识别")
     public ApiResponse<Map<String, String>> recognition(@RequestBody ImageRecognizeRequest request) {
         log.info("图片识别请求，modelId={}", request.getModelId());
         String text = imageAiService.recognizeText(request.getModelId(), request.getPrompt(), request.getImage());

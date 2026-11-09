@@ -10,6 +10,8 @@ import cn.langchat.auth.service.AigcUserService;
 import cn.langchat.auth.service.AuthService;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.common.exception.BizException;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -61,6 +63,7 @@ public class AigcUserController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.USER, action = "新增用户")
     public ApiResponse<Boolean> create(@RequestBody AigcUser user) {
         log.info("新增用户，username={}", user.getUsername());
         normalizePassword(user);
@@ -68,6 +71,7 @@ public class AigcUserController {
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.USER, action = "更新用户")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcUser user) {
         user.setId(id);
         log.info("更新用户，id={}", id);
@@ -77,6 +81,7 @@ public class AigcUserController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.USER, action = "删除用户")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除用户，id={}", id);
         AigcUser user = aigcUserService.getById(id);
@@ -101,6 +106,7 @@ public class AigcUserController {
      * 管理员重置指定用户密码（类级权限 langchat:user:list）。
      */
     @PostMapping("/{id}/reset-password")
+    @AuditLog(type = AuditLogType.USER, action = "重置用户密码")
     public ApiResponse<Void> resetPassword(
             @PathVariable("id") String id,
             @Valid @RequestBody ResetPasswordRequest request

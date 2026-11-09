@@ -13,6 +13,8 @@ import cn.langchat.auth.service.AigcMenuService;
 import cn.langchat.auth.service.AuthService;
 import cn.langchat.common.auth.AuthUtil;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ public class AuthController {
     private final AigcMenuService aigcMenuService;
 
     @PostMapping("/login")
+    @AuditLog(type = AuditLogType.LOGIN, action = "用户登录")
     public ApiResponse<AuthLoginResponse> login(@Valid @RequestBody AuthLoginRequest request) {
         return ApiResponse.success(authService.login(request));
     }
@@ -52,6 +55,7 @@ public class AuthController {
      * 自助注册（公开接口，成功后不自动登录）。
      */
     @PostMapping("/register")
+    @AuditLog(type = AuditLogType.USER, action = "用户注册")
     public ApiResponse<AuthRegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
     }
@@ -61,6 +65,7 @@ public class AuthController {
      */
     @PostMapping("/change-password")
     @SaCheckLogin
+    @AuditLog(type = AuditLogType.USER, action = "修改密码")
     public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ApiResponse.success(null);
@@ -71,12 +76,14 @@ public class AuthController {
      */
     @PutMapping("/profile")
     @SaCheckLogin
+    @AuditLog(type = AuditLogType.USER, action = "更新资料")
     public ApiResponse<AuthCurrentUserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         return ApiResponse.success(authService.updateProfile(request));
     }
 
     @PostMapping("/logout")
     @SaCheckLogin
+    @AuditLog(type = AuditLogType.LOGIN, action = "用户登出")
     public ApiResponse<Void> logout() {
         authService.logout();
         return ApiResponse.success(null);

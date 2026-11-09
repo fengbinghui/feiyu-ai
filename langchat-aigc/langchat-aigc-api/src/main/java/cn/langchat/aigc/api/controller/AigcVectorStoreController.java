@@ -6,6 +6,8 @@ import cn.langchat.aigc.biz.service.AigcVectorStoreService;
 import cn.langchat.aigc.biz.support.VectorStoreSupport;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.common.exception.BizException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class AigcVectorStoreController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.VECTOR_STORE, action = "新增向量库")
     public ApiResponse<Boolean> create(@RequestBody AigcVectorStore vectorStore) {
         log.info("新增向量库，name={}, provider={}", vectorStore.getName(), vectorStore.getProvider());
         validateVectorStore(vectorStore);
@@ -61,6 +64,7 @@ public class AigcVectorStoreController {
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.VECTOR_STORE, action = "更新向量库")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcVectorStore vectorStore) {
         vectorStore.setId(id);
         log.info("更新向量库，id={}", id);
@@ -74,6 +78,7 @@ public class AigcVectorStoreController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.VECTOR_STORE, action = "删除向量库")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除向量库，id={}", id);
         return ApiResponse.success(aigcVectorStoreService.removeById(id));

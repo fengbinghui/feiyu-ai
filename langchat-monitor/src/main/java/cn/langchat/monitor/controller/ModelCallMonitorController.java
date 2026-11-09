@@ -2,7 +2,9 @@ package cn.langchat.monitor.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.page.PageQuery;
 import cn.langchat.monitor.model.response.ModelCallOverviewResponse;
+import cn.langchat.monitor.model.response.ModelCallUsageResponse;
 import cn.langchat.monitor.service.ModelCallStatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,5 +38,24 @@ public class ModelCallMonitorController {
             @RequestParam(value = "windowDays", required = false) Integer windowDays
     ) {
         return ApiResponse.success(modelCallStatisticsService.getOverview(windowDays));
+    }
+
+    /**
+     * 查询用量分析（配额 / 汇总 / 趋势 / 模型 / 场景 / 最近调用分页）。
+     *
+     * @param windowDays 统计窗口天数，默认 7 天
+     * @param pageNo 最近调用记录页码，默认 1
+     * @param pageSize 最近调用记录页大小，默认 20、上限 200
+     */
+    @GetMapping("/usage")
+    public ApiResponse<ModelCallUsageResponse> usage(
+            @RequestParam(value = "windowDays", required = false) Integer windowDays,
+            @RequestParam(value = "pageNo", required = false) Integer pageNo,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize
+    ) {
+        return ApiResponse.success(modelCallStatisticsService.getUsage(
+                windowDays,
+                PageQuery.of(pageNo, pageSize)
+        ));
     }
 }

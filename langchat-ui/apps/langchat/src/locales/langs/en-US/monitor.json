@@ -68,5 +68,67 @@
     "tokens": "Combined input and output tokens",
     "avgDuration": "Average response time per model call",
     "successRate": "No failed calls in the current window"
+  },
+  "view": {
+    "calls": "Call Monitoring",
+    "usage": "Usage Analysis"
+  },
+  "usage": {
+    "description": "Inspect token quota, usage trends, scene and model distribution, plus paginated recent call details.",
+    "quota": {
+      "title": "Daily Token Quota",
+      "hint": "Token consumption of all model calls today",
+      "today": "Today",
+      "limit": "Daily Limit",
+      "unlimited": "Unlimited",
+      "percent": "{percent}% used",
+      "noLimitHint": "No daily limit is configured, token usage is unlimited"
+    },
+    "totals": {
+      "title": "Window Summary",
+      "calls": "Calls",
+      "tokens": "Tokens",
+      "successRate": "Success Rate",
+      "avgDuration": "Avg Duration",
+      "inputTokens": "Input Tokens",
+      "outputTokens": "Output Tokens",
+      "errorCount": "Failures",
+      "hintCalls": "Number of model calls in the window",
+      "hintTokens": "Combined input and output tokens",
+      "hintSuccessRate": "Share of successful calls",
+      "hintAvgDuration": "Average response time per model call"
+    },
+    "trend": {
+      "title": "Usage Trend",
+      "description": "Daily call count and token consumption"
+    },
+    "scene": {
+      "title": "Scene Distribution",
+      "description": "Call share grouped by scene"
+    },
+    "callType": {
+      "title": "Call Type Distribution",
+      "description": "Share of chat / embedding / image / OCR calls"
+    },
+    "byModel": {
+      "title": "Usage by Model",
+      "description": "Call counts and token usage per model in the window",
+      "empty": "No model usage data",
+      "columns": {
+        "model": "Model",
+        "provider": "Provider",
+        "calls": "Calls",
+        "tokens": "Tokens",
+        "errorCount": "Failures",
+        "avgDuration": "Avg Duration"
+      }
+    },
+    "recent": {
+      "title": "Recent Calls",
+      "description": "Server-side paginated recent model call records",
+      "empty": "No recent calls",
+      "total": "{total} records"
+    },
+    "loadFailed": "Failed to load usage analysis, please try again later"
   }
 }

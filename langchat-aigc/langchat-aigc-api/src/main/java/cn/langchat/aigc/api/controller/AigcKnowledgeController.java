@@ -4,6 +4,8 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcKnowledge;
 import cn.langchat.aigc.biz.service.AigcKnowledgeService;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,12 +44,14 @@ public class AigcKnowledgeController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.KNOWLEDGE, action = "新增知识库")
     public ApiResponse<Boolean> create(@RequestBody AigcKnowledge knowledge) {
         log.info("新增知识库，name={}", knowledge.getName());
         return ApiResponse.success(aigcKnowledgeService.save(knowledge));
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.KNOWLEDGE, action = "更新知识库")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcKnowledge knowledge) {
         knowledge.setId(id);
         log.info("更新知识库，id={}", id);
@@ -55,6 +59,7 @@ public class AigcKnowledgeController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.KNOWLEDGE, action = "删除知识库")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除知识库，id={}", id);
         return ApiResponse.success(aigcKnowledgeService.removeById(id));

@@ -53,9 +53,9 @@ export class VxeGridApi<
       mergeWithArrayOverride(storeState, defaultState) as VxeGridProps<T, D>,
     );
 
-    this.store.subscribe(({ currentVal }) => {
+    this.store.subscribe((state) => {
       // this.prevState = this.state;
-      this.state = currentVal;
+      this.state = state;
     });
 
     this.state = this.store.state;

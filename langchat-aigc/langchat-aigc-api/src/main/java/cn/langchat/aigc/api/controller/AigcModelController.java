@@ -6,6 +6,8 @@ import cn.langchat.aigc.biz.service.AigcModelService;
 import cn.langchat.aigc.biz.support.ModelConfigSupport;
 import cn.langchat.common.core.ApiResponse;
 import cn.langchat.common.core.CommonErrorCode;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import cn.langchat.common.exception.BizException;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +56,7 @@ public class AigcModelController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.MODEL, action = "新增模型")
     public ApiResponse<Boolean> create(@RequestBody AigcModel model) {
         log.info("新增模型，provider={}, model={}", model.getProvider(), model.getModel());
         validateModelConfig(model);
@@ -61,6 +64,7 @@ public class AigcModelController {
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.MODEL, action = "更新模型")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcModel model) {
         model.setId(id);
         log.info("更新模型，id={}", id);
@@ -74,6 +78,7 @@ public class AigcModelController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.MODEL, action = "删除模型")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除模型，id={}", id);
         return ApiResponse.success(aigcModelService.removeById(id));

@@ -50,7 +50,15 @@ public class SaTokenConfigure implements WebMvcConfigurer {
                 // 开启注解鉴权，使 @SaCheckLogin / @SaCheckPermission 生效。
                 .isAnnotation(true))
                 .addPathPatterns("/**")
-                // OpenAI 兼容接口使用独立的 API Key 鉴权；actuator / 错误页无需登录态。
-                .excludePathPatterns("/v1/**", "/actuator/**", "/error");
+                // OpenAI 兼容接口使用独立的 API Key 鉴权；actuator / 错误页无需登录态；
+                // OpenAPI 文档与 Swagger UI 作为公开文档放开。
+                .excludePathPatterns(
+                        "/v1/**",
+                        "/actuator/**",
+                        "/error",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                );
     }
 }

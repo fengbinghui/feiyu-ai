@@ -5,10 +5,14 @@ import type {
   ModelCallOverview,
   ModelCallRecentItem,
   ModelCallTrendPoint,
+  ModelCallUsage,
+  ModelCallUsageDistributionItem,
   ModelCallUsageItem,
+  ModelCallUsageModelItem,
+  ModelCallUsageTrendPoint,
 } from '#/api/core/monitor';
 
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
 import {
@@ -23,10 +27,13 @@ import { $t } from '@vben/locales';
 import { useEcharts, EchartsUI } from '@vben/plugins/echarts';
 import { usePreferences } from '@vben/preferences';
 
+import type { DataTableColumns } from 'naive-ui';
+
 import {
   NButton,
   NDataTable,
   NEmpty,
+  NPagination,
   NProgress,
   NRadioButton,
   NRadioGroup,
@@ -34,22 +41,41 @@ import {
   NTag,
 } from 'naive-ui';
 
-import { getModelCallOverviewApi } from '#/api/core/monitor';
+import {
+  getModelCallOverviewApi,
+  getModelCallUsageApi,
+} from '#/api/core/monitor';
+import { message } from '#/adapter/naive';
 import LcCard from '#/components/LcCard/index.vue';
 import LcEmptyState from '#/components/LcEmptyState/index.vue';
+
+type MonitorView = 'calls' | 'usage';
 
 const loading = ref(false);
 const windowDays = ref(7);
 const overview = ref<ModelCallOverview>({});
+const viewMode = ref<MonitorView>('calls');
+
+const usageLoading = ref(false);
+const usage = ref<ModelCallUsage>({});
+const usagePageNo = ref(1);
+const usagePageSize = ref(10);
 
 const { isDark } = usePreferences();
 
 const trendChartRef = ref();
 const callTypeChartRef = ref();
 const providerChartRef = ref();
+const usageTrendChartRef = ref();
+const usageSceneChartRef = ref();
+const usageCallTypeChartRef = ref();
 const { renderEcharts: renderTrendChart } = useEcharts(trendChartRef);
 const { renderEcharts: renderCallTypeChart } = useEcharts(callTypeChartRef);
 const { renderEcharts: renderProviderChart } = useEcharts(providerChartRef);
+const { renderEcharts: renderUsageTrendChart } = useEcharts(usageTrendChartRef);
+const { renderEcharts: renderUsageSceneChart } = useEcharts(usageSceneChartRef);
+const { renderEcharts: renderUsageCallTypeChart } =
+  useEcharts(usageCallTypeChartRef);
 
 /** 图表配色跟随明暗主题，保持与设计令牌一致的语义色。 */
 const chartPalette = computed(() => {
@@ -145,6 +171,130 @@ const topModels = computed<ModelCallUsageItem[]>(
 );
 const recentCalls = computed<ModelCallRecentItem[]>(
   () => overview.value.recentCalls ?? [],
+);
+
+// ---------- 用量分析 ----------
+const viewOptions = computed(() => [
+  { label: $t('monitor.view.calls'), value: 'calls' as const },
+  { label: $t('monitor.view.usage'), value: 'usage' as const },
+]);
+
+const quota = computed(() => usage.value.quota ?? {});
+const usageTotals = computed(() => usage.value.totals ?? {});
+const usageTrend = computed<ModelCallUsageTrendPoint[]>(
+  () => usage.value.trend ?? [],
+);
+const usageByModel = computed<ModelCallUsageModelItem[]>(
+  () => usage.value.byModel ?? [],
+);
+const usageByScene = computed<ModelCallUsageDistributionItem[]>(
+  () => usage.value.byScene ?? [],
+);
+const usageByCallType = computed<ModelCallUsageDistributionItem[]>(
+  () => usage.value.byCallType ?? [],
+);
+const usageRecentCalls = computed<ModelCallRecentItem[]>(
+  () => usage.value.recentCalls?.records ?? [],
+);
+const usageRecentTotal = computed(() => usage.value.recentCalls?.total ?? 0);
+
+/** 配额使用百分比，limit=0（不限额）时为 0。 */
+const quotaLimit = computed(() => Number(quota.value.dailyTokenLimit ?? 0));
+const quotaPercent = computed(() => {
+  if (quotaLimit.value <= 0) {
+    return 0;
+  }
+  const percent = Number(quota.value.usagePercent ?? 0);
+  return Math.min(100, Math.max(0, Number.isFinite(percent) ? percent : 0));
+});
+const quotaPercentText = computed(() => quotaPercent.value.toFixed(1));
+
+const usageMetricCards = computed(() => [
+  {
+    hint: $t('monitor.usage.totals.hintCalls'),
+    icon: Activity,
+    key: 'calls',
+    label: $t('monitor.usage.totals.calls'),
+    value: formatNumber(usageTotals.value.calls),
+  },
+  {
+    hint: $t('monitor.usage.totals.hintTokens'),
+    icon: Zap,
+    key: 'tokens',
+    label: $t('monitor.usage.totals.tokens'),
+    value: formatNumber(usageTotals.value.tokens),
+  },
+  {
+    hint: $t('monitor.usage.totals.hintSuccessRate'),
+    icon: TriangleAlert,
+    key: 'successRate',
+    label: $t('monitor.usage.totals.successRate'),
+    value: `${Number(usageTotals.value.successRate ?? 0).toFixed(2)}%`,
+  },
+  {
+    hint: $t('monitor.usage.totals.hintAvgDuration'),
+    icon: Server,
+    key: 'avgDuration',
+    label: $t('monitor.usage.totals.avgDuration'),
+    value: formatDuration(usageTotals.value.avgDuration),
+  },
+]);
+
+const usageModelColumns = computed<
+  DataTableColumns<ModelCallUsageModelItem>
+>(() => [
+  {
+    key: 'modelName',
+    title: $t('monitor.usage.byModel.columns.model'),
+    width: 170,
+    ellipsis: { tooltip: true },
+    render: (row: ModelCallUsageModelItem) => row.modelName || '--',
+  },
+  {
+    key: 'provider',
+    title: $t('monitor.usage.byModel.columns.provider'),
+    width: 120,
+    render: (row: ModelCallUsageModelItem) => row.provider || '--',
+  },
+  {
+    key: 'calls',
+    title: $t('monitor.usage.byModel.columns.calls'),
+    width: 100,
+    align: 'right',
+    render: (row: ModelCallUsageModelItem) => formatNumber(row.calls),
+  },
+  {
+    key: 'tokens',
+    title: $t('monitor.usage.byModel.columns.tokens'),
+    width: 120,
+    align: 'right',
+    render: (row: ModelCallUsageModelItem) => formatNumber(row.tokens),
+  },
+  {
+    key: 'errorCount',
+    title: $t('monitor.usage.byModel.columns.errorCount'),
+    width: 100,
+    align: 'right',
+    render: (row: ModelCallUsageModelItem) => formatNumber(row.errorCount),
+  },
+  {
+    key: 'avgDuration',
+    title: $t('monitor.usage.byModel.columns.avgDuration'),
+    width: 110,
+    align: 'right',
+    render: (row: ModelCallUsageModelItem) => formatDuration(row.avgDuration),
+  },
+]);
+
+const usageRecentRows = computed(() =>
+  usageRecentCalls.value.map((item) => ({
+    ...item,
+    callType: callTypeLabel(item.callType),
+    scene: sceneLabel(item.scene),
+    totalToken: formatNumber(item.totalToken),
+    duration: formatDuration(item.duration),
+    createTime: formatTime(item.createTime),
+  })),
 );
 
 /** 模型消耗排行的最大值，用于计算进度条比例。 */
@@ -388,6 +538,200 @@ async function renderCharts() {
   ]);
 }
 
+function buildUsageTrendOption(points: ModelCallUsageTrendPoint[]) {
+  const palette = chartPalette.value;
+  const dates = points.map((item) => item.date || '--');
+  const callsLegend = $t('monitor.usage.totals.calls');
+  const tokensLegend = $t('monitor.usage.totals.tokens');
+  return {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: palette.tooltipBg,
+      borderColor: palette.tooltipBorder,
+      textStyle: { color: palette.tooltipText, fontSize: 11 },
+    },
+    legend: {
+      data: [callsLegend, tokensLegend],
+      top: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 16,
+      textStyle: { color: palette.legend, fontSize: 11 },
+    },
+    grid: { top: 40, right: 24, bottom: 28, left: 52 },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisTick: { show: false },
+      axisLabel: { color: palette.axis, fontSize: 11 },
+      axisLine: { lineStyle: { color: palette.axisLine } },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: $t('monitor.chart.countSeries'),
+        nameTextStyle: { color: palette.axis, fontSize: 10 },
+        axisLabel: { color: palette.axis, fontSize: 11 },
+        splitLine: { lineStyle: { color: palette.split } },
+      },
+      {
+        type: 'value',
+        name: tokensLegend,
+        nameTextStyle: { color: palette.axis, fontSize: 10 },
+        axisLabel: { color: palette.axis, fontSize: 11 },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: callsLegend,
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        data: points.map((item) => item.calls ?? 0),
+        lineStyle: { color: palette.seriesPrimary, width: 2.5 },
+        itemStyle: { color: palette.seriesPrimary },
+        areaStyle: { opacity: palette.areaOpacity },
+      },
+      {
+        name: tokensLegend,
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        yAxisIndex: 1,
+        data: points.map((item) => item.tokens ?? 0),
+        lineStyle: { color: palette.seriesSecondary, width: 2.5 },
+        itemStyle: { color: palette.seriesSecondary },
+      },
+    ],
+  };
+}
+
+/** 用量分布图：既可能是场景（中文映射），也可能是调用类型（枚举映射）。 */
+function buildUsageDistributionOption(
+  items: ModelCallUsageDistributionItem[],
+  resolveName: (raw: string) => string,
+) {
+  const palette = chartPalette.value;
+  if (items.length === 0) {
+    return {
+      title: {
+        text: $t('monitor.chart.empty'),
+        left: 'center',
+        top: 'center',
+        textStyle: {
+          color: palette.axis,
+          fontSize: 12,
+          fontWeight: 'normal',
+        },
+      },
+      series: [],
+    };
+  }
+  return {
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: palette.tooltipBg,
+      borderColor: palette.tooltipBorder,
+      textStyle: { color: palette.tooltipText, fontSize: 11 },
+    },
+    legend: {
+      bottom: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      itemGap: 14,
+      textStyle: { color: palette.legend, fontSize: 11 },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['44%', '68%'],
+        center: ['50%', '44%'],
+        avoidLabelOverlap: true,
+        itemStyle: { borderColor: palette.pieBorder, borderWidth: 2 },
+        label: { color: palette.text, fontSize: 11 },
+        data: items.map((item) => ({
+          name: resolveName(String(item.name ?? '')),
+          value: item.calls ?? 0,
+        })),
+      },
+    ],
+  };
+}
+
+function resolveSceneName(raw: string) {
+  const key = SCENE_LABEL_KEYS[raw];
+  return key ? $t(key) : raw || $t('monitor.chart.unknown');
+}
+
+function resolveCallTypeName(raw: string) {
+  const key = CALL_TYPE_LABEL_KEYS[raw];
+  return key ? $t(key) : raw || $t('monitor.chart.unknown');
+}
+
+async function renderUsageCharts() {
+  await Promise.all([
+    renderUsageTrendChart(buildUsageTrendOption(usageTrend.value) as never),
+    renderUsageSceneChart(
+      buildUsageDistributionOption(usageByScene.value, resolveSceneName) as never,
+    ),
+    renderUsageCallTypeChart(
+      buildUsageDistributionOption(
+        usageByCallType.value,
+        resolveCallTypeName,
+      ) as never,
+    ),
+  ]);
+}
+
+async function loadUsage() {
+  usageLoading.value = true;
+  try {
+    usage.value = await getModelCallUsageApi({
+      pageNo: usagePageNo.value,
+      pageSize: usagePageSize.value,
+      windowDays: windowDays.value,
+    });
+    await nextTick();
+    await renderUsageCharts();
+  } catch {
+    message.error($t('monitor.usage.loadFailed'));
+  } finally {
+    usageLoading.value = false;
+  }
+}
+
+async function handleViewChange(value: MonitorView) {
+  viewMode.value = value;
+  if (value === 'usage') {
+    await nextTick();
+    await loadUsage();
+  }
+}
+
+function handleUsagePageChange(page: number) {
+  usagePageNo.value = page;
+  void loadUsage();
+}
+
+function handleUsagePageSizeChange(size: number) {
+  usagePageSize.value = size;
+  usagePageNo.value = 1;
+  void loadUsage();
+}
+
+function handleRefresh() {
+  if (viewMode.value === 'usage') {
+    void loadUsage();
+  } else {
+    void loadOverview();
+  }
+}
+
 async function loadOverview() {
   loading.value = true;
   try {
@@ -400,12 +744,21 @@ async function loadOverview() {
 
 async function handleWindowChange(value: number) {
   windowDays.value = value;
-  await loadOverview();
+  if (viewMode.value === 'usage') {
+    usagePageNo.value = 1;
+    await loadUsage();
+  } else {
+    await loadOverview();
+  }
 }
 
 // 明暗主题切换时重绘图表，保证坐标轴/图例颜色同步
 watch(isDark, () => {
-  void renderCharts();
+  if (viewMode.value === 'usage') {
+    void renderUsageCharts();
+  } else {
+    void renderCharts();
+  }
 });
 
 onMounted(loadOverview);
@@ -419,7 +772,20 @@ onMounted(loadOverview);
     :title="$t('monitor.title')"
   >
     <template #extra>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <NRadioGroup
+          :value="viewMode"
+          size="small"
+          @update:value="handleViewChange"
+        >
+          <NRadioButton
+            v-for="item in viewOptions"
+            :key="item.value"
+            :value="item.value"
+          >
+            {{ item.label }}
+          </NRadioButton>
+        </NRadioGroup>
         <NRadioGroup
           :value="windowDays"
           size="small"
@@ -433,7 +799,11 @@ onMounted(loadOverview);
             {{ item.label }}
           </NRadioButton>
         </NRadioGroup>
-        <NButton :loading="loading" secondary @click="loadOverview">
+        <NButton
+          :loading="viewMode === 'usage' ? usageLoading : loading"
+          secondary
+          @click="handleRefresh"
+        >
           <template #icon>
             <RefreshCcw class="size-3.5" />
           </template>
@@ -442,7 +812,7 @@ onMounted(loadOverview);
       </div>
     </template>
 
-    <NSpin :show="loading">
+    <NSpin v-if="viewMode === 'calls'" :show="loading">
       <!-- 指标卡片 -->
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <LcCard
@@ -638,6 +1008,244 @@ onMounted(loadOverview);
           :description="$t('monitor.recent.description')"
           :title="$t('monitor.chart.empty')"
         />
+      </div>
+    </NSpin>
+
+    <!-- 用量分析 -->
+    <NSpin v-else :show="usageLoading">
+      <!-- 配额 + 汇总指标 -->
+      <div class="grid gap-3 xl:grid-cols-[1.15fr_2fr]">
+        <div
+          class="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-foreground">
+                {{ $t('monitor.usage.quota.title') }}
+              </div>
+              <div class="mt-0.5 text-xs text-muted-foreground">
+                {{ $t('monitor.usage.quota.hint') }}
+              </div>
+            </div>
+            <NTag
+              :bordered="false"
+              :type="
+                quotaLimit <= 0
+                  ? 'info'
+                  : quotaPercent >= 90
+                    ? 'error'
+                    : quotaPercent >= 70
+                      ? 'warning'
+                      : 'primary'
+              "
+              round
+              size="small"
+            >
+              {{
+                quotaLimit <= 0
+                  ? $t('monitor.usage.quota.unlimited')
+                  : $t('monitor.usage.quota.percent', {
+                      percent: quotaPercentText,
+                    })
+              }}
+            </NTag>
+          </div>
+          <div class="mt-4 flex items-end justify-between gap-3">
+            <div>
+              <div class="text-[10px] text-muted-foreground">
+                {{ $t('monitor.usage.quota.today') }}
+              </div>
+              <div
+                class="c-metric-value mt-1 text-[26px] font-semibold leading-none tracking-tight text-foreground"
+              >
+                {{ formatNumber(quota.todayTokens) }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] text-muted-foreground">
+                {{ $t('monitor.usage.quota.limit') }}
+              </div>
+              <div class="mt-1 text-xs font-medium text-foreground">
+                {{
+                  quotaLimit <= 0
+                    ? $t('monitor.usage.quota.unlimited')
+                    : formatNumber(quotaLimit)
+                }}
+              </div>
+            </div>
+          </div>
+          <NProgress
+            class="mt-3"
+            :percentage="quotaLimit <= 0 ? 0 : quotaPercent"
+            :show-indicator="false"
+            :height="10"
+            type="line"
+          />
+          <div class="mt-2 text-[10px] text-muted-foreground">
+            {{
+              quotaLimit <= 0
+                ? $t('monitor.usage.quota.noLimitHint')
+                : $t('monitor.usage.quota.percent', {
+                    percent: quotaPercentText,
+                  })
+            }}
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div
+            v-for="card in usageMetricCards"
+            :key="card.key"
+            class="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="truncate text-[13px] font-semibold text-foreground">
+                {{ card.label }}
+              </div>
+              <component
+                :is="card.icon"
+                class="size-4 shrink-0 text-muted-foreground"
+              />
+            </div>
+            <div
+              class="c-metric-value mt-3 text-[24px] font-semibold leading-none tracking-tight text-foreground"
+            >
+              {{ card.value }}
+            </div>
+            <div class="mt-1.5 truncate text-[10px] text-muted-foreground">
+              {{ card.hint }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 用量趋势 -->
+      <div
+        class="mt-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+      >
+        <div class="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div class="text-sm font-semibold text-foreground">
+              {{ $t('monitor.usage.trend.title') }}
+            </div>
+            <div class="mt-0.5 text-xs text-muted-foreground">
+              {{ $t('monitor.usage.trend.description') }}
+            </div>
+          </div>
+          <span
+            class="hidden shrink-0 items-center gap-1 rounded-md border border-border bg-muted/30 px-2 py-1 text-[10px] text-muted-foreground sm:inline-flex"
+          >
+            <Activity class="size-3" />
+            {{ $t('monitor.usage.totals.calls') }} /
+            {{ $t('monitor.usage.totals.tokens') }}
+          </span>
+        </div>
+        <EchartsUI ref="usageTrendChartRef" height="300px" />
+      </div>
+
+      <!-- 分布图 -->
+      <div class="mt-3 grid gap-3 lg:grid-cols-2">
+        <div
+          class="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+        >
+          <div class="mb-1">
+            <div class="text-sm font-semibold text-foreground">
+              {{ $t('monitor.usage.scene.title') }}
+            </div>
+            <div class="mt-0.5 text-xs text-muted-foreground">
+              {{ $t('monitor.usage.scene.description') }}
+            </div>
+          </div>
+          <EchartsUI ref="usageSceneChartRef" height="260px" />
+        </div>
+
+        <div
+          class="rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+        >
+          <div class="mb-1">
+            <div class="text-sm font-semibold text-foreground">
+              {{ $t('monitor.usage.callType.title') }}
+            </div>
+            <div class="mt-0.5 text-xs text-muted-foreground">
+              {{ $t('monitor.usage.callType.description') }}
+            </div>
+          </div>
+          <EchartsUI ref="usageCallTypeChartRef" height="260px" />
+        </div>
+      </div>
+
+      <!-- 按模型用量 -->
+      <div
+        class="mt-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+      >
+        <div class="mb-3">
+          <div class="text-sm font-semibold text-foreground">
+            {{ $t('monitor.usage.byModel.title') }}
+          </div>
+          <div class="mt-0.5 text-xs text-muted-foreground">
+            {{ $t('monitor.usage.byModel.description') }}
+          </div>
+        </div>
+        <NDataTable
+          :bordered="false"
+          :columns="usageModelColumns"
+          :data="usageByModel"
+          :pagination="false"
+          :scroll-x="820"
+          :single-line="false"
+          size="small"
+        >
+          <template #empty>
+            <NEmpty :description="$t('monitor.usage.byModel.empty')" />
+          </template>
+        </NDataTable>
+      </div>
+
+      <!-- 最近调用明细（服务端分页） -->
+      <div
+        class="mt-3 rounded-lg border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+      >
+        <div class="mb-3">
+          <div class="text-sm font-semibold text-foreground">
+            {{ $t('monitor.usage.recent.title') }}
+          </div>
+          <div class="mt-0.5 text-xs text-muted-foreground">
+            {{ $t('monitor.usage.recent.description') }}
+          </div>
+        </div>
+        <NDataTable
+          v-if="usageRecentRows.length > 0"
+          :bordered="false"
+          :columns="recentColumns"
+          :data="usageRecentRows"
+          :pagination="false"
+          :scroll-x="920"
+          :single-line="false"
+          size="small"
+        />
+        <LcEmptyState
+          v-else
+          class="py-2"
+          :description="$t('monitor.usage.recent.empty')"
+          :title="$t('monitor.chart.empty')"
+        />
+        <div
+          class="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2.5"
+        >
+          <span class="text-[11px] text-muted-foreground">
+            {{ $t('monitor.usage.recent.total', { total: usageRecentTotal }) }}
+          </span>
+          <NPagination
+            :item-count="usageRecentTotal"
+            :page="usagePageNo"
+            :page-size="usagePageSize"
+            :page-sizes="[10, 20, 50]"
+            show-size-picker
+            size="small"
+            @update:page="handleUsagePageChange"
+            @update:page-size="handleUsagePageSizeChange"
+          />
+        </div>
       </div>
     </NSpin>
   </Page>

@@ -5,6 +5,8 @@ import cn.langchat.aigc.biz.entity.AigcMcp;
 import cn.langchat.aigc.biz.event.McpConfigChangedEvent;
 import cn.langchat.aigc.biz.service.AigcMcpService;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,12 +47,14 @@ public class AigcMcpController {
     }
 
     @PostMapping
+    @AuditLog(type = AuditLogType.MCP, action = "新增MCP配置")
     public ApiResponse<Boolean> create(@RequestBody AigcMcp mcp) {
         log.info("新增MCP配置，name={}", mcp.getName());
         return ApiResponse.success(aigcMcpService.save(mcp));
     }
 
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.MCP, action = "更新MCP配置")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcMcp mcp) {
         mcp.setId(id);
         log.info("更新MCP配置，id={}", id);
@@ -61,6 +65,7 @@ public class AigcMcpController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.MCP, action = "删除MCP配置")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除MCP配置，id={}", id);
         boolean removed = aigcMcpService.removeById(id);

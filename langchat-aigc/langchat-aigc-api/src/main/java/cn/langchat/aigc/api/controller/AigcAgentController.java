@@ -4,6 +4,8 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcAgent;
 import cn.langchat.aigc.biz.service.AigcAgentService;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.audit.AuditLog;
+import cn.langchat.common.core.audit.AuditLogType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +55,7 @@ public class AigcAgentController {
      * 新增 Agent。
      */
     @PostMapping
+    @AuditLog(type = AuditLogType.AGENT, action = "新增 Agent")
     public ApiResponse<Boolean> create(@RequestBody AigcAgent agent) {
         log.info("新增 Agent，agentName={}", agent.getAgentName());
         return ApiResponse.success(aigcAgentService.save(agent));
@@ -62,6 +65,7 @@ public class AigcAgentController {
      * 更新 Agent。
      */
     @PutMapping("/{id}")
+    @AuditLog(type = AuditLogType.AGENT, action = "更新 Agent")
     public ApiResponse<Boolean> update(@PathVariable("id") String id, @RequestBody AigcAgent agent) {
         agent.setId(id);
         log.info("更新 Agent，id={}", id);
@@ -72,6 +76,7 @@ public class AigcAgentController {
      * 删除 Agent。
      */
     @DeleteMapping("/{id}")
+    @AuditLog(type = AuditLogType.AGENT, action = "删除 Agent")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除 Agent，id={}", id);
         return ApiResponse.success(aigcAgentService.removeById(id));

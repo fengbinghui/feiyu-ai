@@ -1,0 +1,62 @@
+{
+  "title": "Operation Logs",
+  "description": "Records key system operations and request details, filterable by user, type, keyword and time range.",
+  "filter": {
+    "username": "User",
+    "usernamePlaceholder": "Enter username",
+    "type": "Log Type",
+    "typeAll": "All types",
+    "keyword": "Keyword",
+    "keywordPlaceholder": "Operation / URL / params",
+    "timeRange": "Time range",
+    "query": "Search",
+    "reset": "Reset"
+  },
+  "columns": {
+    "time": "Time",
+    "username": "User",
+    "type": "Type",
+    "operation": "Operation",
+    "method": "Method",
+    "url": "URL",
+    "duration": "Duration",
+    "ip": "IP",
+    "actions": "Actions"
+  },
+  "actions": {
+    "detail": "Details"
+  },
+  "types": {
+    "LOGIN": "Login",
+    "USER": "User",
+    "MODEL": "Model",
+    "CHAT": "Chat",
+    "KNOWLEDGE": "Knowledge",
+    "AGENT": "Agent",
+    "DOCS": "Docs",
+    "SYSTEM": "System",
+    "OTHER": "Other"
+  },
+  "drawer": {
+    "title": "Operation Details",
+    "basic": "Basic Info",
+    "params": "Request Params",
+    "paramsEmpty": "No request params",
+    "userAgent": "User Agent",
+    "type": "Type",
+    "username": "User",
+    "operation": "Operation",
+    "method": "Method",
+    "url": "URL",
+    "ip": "IP",
+    "duration": "Duration",
+    "time": "Time",
+    "loadFailed": "Failed to load details, showing list data instead"
+  },
+  "empty": {
+    "title": "No operation logs",
+    "description": "Operations will be recorded here after they happen, please refresh later."
+  },
+  "total": "{total} records",
+  "loadFailed": "Failed to load operation logs, please try again later"
+}
