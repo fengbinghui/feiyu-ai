@@ -42,4 +42,23 @@ public class DataSourceConfiguration {
     public JdbcTemplate mysqlJdbcTemplate(@Qualifier("mysqlDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
+
+    /**
+     * Pgvector 数据源属性（可选）。
+     *
+     * <p>知识库向量检索由运行时的向量库配置驱动，这里的数据源仅用于
+     * {@code DualDataSourceHealthIndicator} 等基础组件做连通性健康检查。</p>
+     */
+    @Bean
+    @ConfigurationProperties("spring.datasource.pgvector")
+    public DataSourceProperties pgvectorDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean(name = "pgvectorDataSource")
+    @ConditionalOnProperty(prefix = "spring.datasource.pgvector", name = "url")
+    public DataSource pgvectorDataSource(
+            @Qualifier("pgvectorDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    }
 }

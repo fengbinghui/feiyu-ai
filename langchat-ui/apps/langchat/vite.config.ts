@@ -10,7 +10,8 @@ export default defineConfig(async () => {
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
             // 本地开发统一代理到 LangChat 后端服务
-            target: 'http://localhost:8080/api',
+            // 注：本机 8080 被 Steam 占用，后端改监听 8081
+            target: 'http://localhost:8081/api',
             ws: true,
           },
         },

@@ -38,6 +38,8 @@ target/
 */logs/
 */cache/
 */.cache/
+# 本地运行时数据目录（本地存储 OSS / 技能工作区）
+/data/
 *.oprLog
 */.claude/
 .claude/
