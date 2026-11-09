@@ -2,8 +2,12 @@ package cn.langchat.auth.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.langchat.auth.model.request.AuthLoginRequest;
+import cn.langchat.auth.model.request.ChangePasswordRequest;
+import cn.langchat.auth.model.request.RegisterRequest;
+import cn.langchat.auth.model.request.UpdateProfileRequest;
 import cn.langchat.auth.model.response.AuthCurrentUserResponse;
 import cn.langchat.auth.model.response.AuthLoginResponse;
+import cn.langchat.auth.model.response.AuthRegisterResponse;
 import cn.langchat.auth.model.response.AuthRouteRecordResponse;
 import cn.langchat.auth.service.AigcMenuService;
 import cn.langchat.auth.service.AuthService;
@@ -34,6 +38,41 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<AuthLoginResponse> login(@Valid @RequestBody AuthLoginRequest request) {
         return ApiResponse.success(authService.login(request));
+    }
+
+    /**
+     * 查询是否开放自助注册（公开接口，注册页读取开关）。
+     */
+    @GetMapping("/register-enabled")
+    public ApiResponse<Boolean> registerEnabled() {
+        return ApiResponse.success(authService.registerEnabled());
+    }
+
+    /**
+     * 自助注册（公开接口，成功后不自动登录）。
+     */
+    @PostMapping("/register")
+    public ApiResponse<AuthRegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.success(authService.register(request));
+    }
+
+    /**
+     * 当前登录用户修改密码。
+     */
+    @PostMapping("/change-password")
+    @SaCheckLogin
+    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ApiResponse.success(null);
+    }
+
+    /**
+     * 当前登录用户更新个人资料。
+     */
+    @PutMapping("/profile")
+    @SaCheckLogin
+    public ApiResponse<AuthCurrentUserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        return ApiResponse.success(authService.updateProfile(request));
     }
 
     @PostMapping("/logout")

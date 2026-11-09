@@ -1,5 +1,7 @@
 {
   "login": "登录",
+  "register": "注册",
+  "forgetPassword": "找回密码",
   "overview": "概览",
   "market": "应用市场",
   "about": "关于",
@@ -8,6 +10,7 @@
   "docsUpload": "文档上传",
   "docsPreview": "文档预览",
   "marketChat": "Agent 会话",
+  "profile": "个人中心",
   "dynamic": {
     "ai": "智能应用",
     "agents": "Agent 管理",

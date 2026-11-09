@@ -54,6 +54,23 @@ const coreRoutes: RouteRecordRaw[] = [
           title: 'menu.login',
         },
       },
+      {
+        name: 'Register',
+        path: 'register',
+        component: () => import('#/views/_core/authentication/register.vue'),
+        meta: {
+          title: 'menu.register',
+        },
+      },
+      {
+        name: 'ForgetPassword',
+        path: 'forget-password',
+        component: () =>
+          import('#/views/_core/authentication/forget-password.vue'),
+        meta: {
+          title: 'menu.forgetPassword',
+        },
+      },
     ],
   },
 ];

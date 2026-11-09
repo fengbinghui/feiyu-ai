@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.langchat.aigc.biz.entity.AigcDocs;
 import cn.langchat.aigc.biz.entity.AigcKnowledge;
 import cn.langchat.aigc.biz.entity.AigcOss;
+import cn.langchat.aigc.biz.event.AigcDocsDeletedEvent;
 import cn.langchat.aigc.biz.service.AigcDocsService;
 import cn.langchat.aigc.biz.service.AigcKnowledgeService;
 import cn.langchat.aigc.biz.service.AigcOssService;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -59,6 +61,7 @@ public class AigcDocsController {
     private final AigcKnowledgeService aigcKnowledgeService;
     private final AigcOssService aigcOssService;
     private final OssService ossService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @GetMapping
     public ApiResponse<List<AigcDocs>> list(@RequestParam(value = "knowledgeId", required = false) String knowledgeId) {
@@ -138,8 +141,19 @@ public class AigcDocsController {
 
     @DeleteMapping("/{id}")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
-        log.info("删除文档，id={}", id);
-        return ApiResponse.success(aigcDocsService.removeById(id));
+        AigcDocs docs = aigcDocsService.getById(id);
+        boolean removed = aigcDocsService.removeById(id);
+        if (removed && docs != null) {
+            // 文档记录删除成功后发布事件，由 langchat-core 清理该文档的分段与向量库残留；
+            // 清理失败不影响删除结果（监听器内部已收敛异常）。
+            try {
+                eventPublisher.publishEvent(new AigcDocsDeletedEvent(docs.getId(), docs.getKnowledgeId()));
+            } catch (Exception ex) {
+                log.warn("发布文档删除清理事件失败（不影响删除结果），docsId={}", id, ex);
+            }
+        }
+        log.info("删除文档，id={}, removed={}", id, removed);
+        return ApiResponse.success(removed);
     }
 
     private void validateUploadRequest(MultipartFile file, String knowledgeId) {

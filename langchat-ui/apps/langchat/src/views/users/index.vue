@@ -11,7 +11,10 @@ import { $t } from '@vben/locales';
 
 import { NButton, NInput, NSelect, NTag } from 'naive-ui';
 
+import { useVbenModal } from '@vben-core/popup-ui';
+
 import LcStatusTag from '#/components/LcStatusTag/index.vue';
+import { useVbenForm, type VbenFormSchema, z } from '#/adapter/form';
 import { dialog, message } from '#/adapter/naive';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { roleApi } from '#/api/auth/role';
@@ -169,7 +172,7 @@ const gridColumns = computed<VxeGridPropTypes.Columns<AigcUser>>(() => [
     fixed: 'right',
     slots: { default: 'actionColumn' },
     title: $t('common.labels.actions'),
-    width: 150,
+    width: 200,
   },
 ]);
 
@@ -291,6 +294,94 @@ async function syncUserRoles(userId: string, nextRoleIds: string[]) {
     ),
   ]);
 }
+
+// ---------- 重置密码 ----------
+const resetting = ref(false);
+const resetTarget = ref<AigcUser | null>(null);
+
+const resetFormSchema = computed((): VbenFormSchema[] => [
+  {
+    component: 'VbenInputPassword',
+    componentProps: {
+      placeholder: $t('users.resetPassword.newPasswordPlaceholder'),
+    },
+    fieldName: 'newPassword',
+    label: $t('users.resetPassword.newPassword'),
+    rules: z.string().min(6, {
+      message: $t('users.resetPassword.passwordMin'),
+    }),
+  },
+  {
+    component: 'VbenInputPassword',
+    componentProps: {
+      placeholder: $t('users.resetPassword.confirmPasswordPlaceholder'),
+    },
+    fieldName: 'confirmPassword',
+    label: $t('users.resetPassword.confirmPassword'),
+    rules: z.string().min(1, {
+      message: $t('users.resetPassword.passwordMismatch'),
+    }),
+  },
+]);
+
+const [ResetForm, resetFormApi] = useVbenForm({
+  layout: 'vertical',
+  schema: resetFormSchema.value,
+  showDefaultActions: false,
+  wrapperClass: 'lc-form-grid grid-cols-1 gap-x-4',
+});
+
+watch(
+  () => resetFormSchema.value,
+  (schema) => {
+    resetFormApi.setState({ schema });
+  },
+  { immediate: true },
+);
+
+const [ResetModal, resetModalApi] = useVbenModal({
+  onCancel() {
+    resetModalApi.close();
+  },
+});
+
+watch(
+  () => $t('users.resetPassword.title'),
+  (value) => {
+    resetModalApi.setState({ title: value });
+  },
+  { immediate: true },
+);
+
+function openResetPassword(item: AigcUser) {
+  resetTarget.value = item;
+  resetModalApi.open();
+  void resetFormApi.resetForm();
+}
+
+async function handleResetPassword() {
+  const target = resetTarget.value;
+  if (!target?.id) {
+    return;
+  }
+  const values = await resetFormApi.validateAndSubmitForm();
+  if (!values) {
+    return;
+  }
+  const newPassword = String(values.newPassword ?? '');
+  if (newPassword !== String(values.confirmPassword ?? '')) {
+    message.error($t('users.resetPassword.passwordMismatch'));
+    return;
+  }
+  resetting.value = true;
+  try {
+    await userApi.resetPassword(target.id, newPassword);
+    message.success($t('users.resetPassword.success'));
+    resetModalApi.close();
+  } finally {
+    resetting.value = false;
+  }
+}
 </script>
 
 <template>
@@ -388,6 +479,15 @@ async function syncUserRoles(userId: string, nextRoleIds: string[]) {
               {{ $t('common.actions.edit') }}
             </NButton>
             <span class="h-3 w-px bg-border"></span>
+            <NButton
+              size="small"
+              text
+              type="warning"
+              @click="openResetPassword(row)"
+            >
+              {{ $t('users.resetPassword.action') }}
+            </NButton>
+            <span class="h-3 w-px bg-border"></span>
             <NButton size="small" text type="error" @click="handleDelete(row)">
               {{ $t('common.actions.delete') }}
             </NButton>
@@ -403,5 +503,43 @@ async function syncUserRoles(userId: string, nextRoleIds: string[]) {
       :saving="saving"
       @save="handleSave"
     />
+
+    <ResetModal
+      class="w-[480px]"
+      header-class="border-b"
+      :title="$t('users.resetPassword.title')"
+    >
+      <div class="px-1 pb-1">
+        <div
+          class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300"
+        >
+          {{
+            $t('users.resetPassword.description', {
+              name:
+                resetTarget?.realName ||
+                resetTarget?.username ||
+                $t('users.card.unnamed'),
+            })
+          }}
+        </div>
+        <div class="mt-3">
+          <ResetForm />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <NButton @click="resetModalApi.close()">
+            {{ $t('common.actions.cancel') }}
+          </NButton>
+          <NButton
+            :loading="resetting"
+            type="primary"
+            @click="handleResetPassword"
+          >
+            {{ $t('users.resetPassword.action') }}
+          </NButton>
+        </div>
+      </template>
+    </ResetModal>
   </Page>
 </template>

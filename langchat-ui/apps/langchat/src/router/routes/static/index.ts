@@ -97,6 +97,20 @@ const routes: RouteRecordRaw[] = [
   },
 
   // ========================
+  // 个人中心（受保护，不显示在菜单中）
+  // ========================
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('#/views/profile/index.vue'),
+    meta: {
+      hideInMenu: true,
+      keepAlive: false,
+      title: 'menu.profile',
+    },
+  },
+
+  // ========================
   // 关于
   // ========================
   {

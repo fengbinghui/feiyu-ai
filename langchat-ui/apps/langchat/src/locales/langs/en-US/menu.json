@@ -1,5 +1,7 @@
 {
   "login": "Sign in",
+  "register": "Sign up",
+  "forgetPassword": "Recover password",
   "overview": "Overview",
   "market": "App Market",
   "about": "About",
@@ -8,6 +10,7 @@
   "docsUpload": "Document Upload",
   "docsPreview": "Document Preview",
   "marketChat": "Agent Chat",
+  "profile": "Profile",
   "dynamic": {
     "ai": "AI Applications",
     "agents": "Agent Management",

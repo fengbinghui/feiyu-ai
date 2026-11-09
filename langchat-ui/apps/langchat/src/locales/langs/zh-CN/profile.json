@@ -1,0 +1,45 @@
+{
+  "title": "个人中心",
+  "description": "管理个人资料、安全设置与登录密码",
+  "account": {
+    "title": "账号信息",
+    "description": "以下信息由管理员维护，如需变更请联系管理员",
+    "username": "用户名",
+    "roles": "角色",
+    "userId": "用户 ID"
+  },
+  "basic": {
+    "title": "基本资料",
+    "description": "昵称会展示在页面右上角与团队协作信息中",
+    "realName": "昵称",
+    "realNamePlaceholder": "请输入昵称",
+    "email": "邮箱",
+    "emailPlaceholder": "请输入邮箱",
+    "phone": "手机号",
+    "phonePlaceholder": "请输入手机号",
+    "avatar": "头像地址",
+    "avatarPlaceholder": "请输入头像图片 URL（可选）",
+    "save": "保存资料"
+  },
+  "password": {
+    "title": "修改密码",
+    "description": "修改成功后将自动退出登录，请使用新密码重新登录",
+    "oldPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "oldPasswordPlaceholder": "请输入当前登录密码",
+    "newPasswordPlaceholder": "请输入新密码（至少 6 位）",
+    "confirmPasswordPlaceholder": "请再次输入新密码",
+    "submit": "修改密码"
+  },
+  "validation": {
+    "realNameRequired": "请输入昵称",
+    "passwordMin": "密码至少需要 6 位",
+    "passwordMismatch": "两次输入的新密码不一致",
+    "newPasswordSame": "新密码不能与当前密码相同"
+  },
+  "messages": {
+    "profileSaved": "个人资料已更新",
+    "passwordChanged": "密码修改成功，请使用新密码重新登录"
+  }
+}

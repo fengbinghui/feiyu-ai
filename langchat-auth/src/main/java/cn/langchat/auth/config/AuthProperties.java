@@ -23,6 +23,16 @@ public class AuthProperties {
     private String superAdminUsername;
 
     /**
+     * 是否开放自助注册。
+     */
+    private boolean registerEnabled = true;
+
+    /**
+     * 注册用户默认角色编码（对应 aigc_role.code）。
+     */
+    private String defaultRoleCode = "USER";
+
+    /**
      * 连续登录失败上限，达到后锁定账号。
      */
     private int loginMaxAttempts = 5;

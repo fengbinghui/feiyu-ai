@@ -26,7 +26,18 @@ export interface AigcUserRole extends BaseEntity {
   userId?: string;
 }
 
-export const userApi = createCrudApi<AigcUser>('/v1/auth/users');
+const userCrudApi = createCrudApi<AigcUser>('/v1/auth/users');
+
+export const userApi = {
+  ...userCrudApi,
+  /**
+   * 管理员重置指定用户密码（后端会同时解除该账号的登录锁定）
+   */
+  resetPassword: (id: string, newPassword: string) =>
+    requestClient.post<boolean>(`/v1/auth/users/${id}/reset-password`, {
+      newPassword,
+    }),
+};
 
 export const userRoleApi = {
   create: (payload: Partial<AigcUserRole>) =>

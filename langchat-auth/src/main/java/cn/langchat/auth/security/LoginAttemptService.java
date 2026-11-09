@@ -69,6 +69,17 @@ public class LoginAttemptService {
     }
 
     /**
+     * 清除指定账号的失败计数与锁定状态（修改密码 / 管理员重置密码后调用）。
+     */
+    public void clear(String username) {
+        if (username == null) {
+            return;
+        }
+        attempts.remove(key(username));
+        log.info("已清除账号登录失败计数与锁定状态，username={}", username);
+    }
+
+    /**
      * 登录失败：累加失败次数，达到上限时锁定账号并抛出限流异常。
      */
     public void recordFailure(String username) {

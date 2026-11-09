@@ -1,0 +1,45 @@
+{
+  "title": "Profile",
+  "description": "Manage your profile, security settings and login password",
+  "account": {
+    "title": "Account",
+    "description": "The information below is maintained by administrators. Contact them to change it.",
+    "username": "Username",
+    "roles": "Roles",
+    "userId": "User ID"
+  },
+  "basic": {
+    "title": "Basic Information",
+    "description": "Your nickname is shown in the top-right menu and team collaboration info",
+    "realName": "Nickname",
+    "realNamePlaceholder": "Enter nickname",
+    "email": "Email",
+    "emailPlaceholder": "Enter email",
+    "phone": "Phone",
+    "phonePlaceholder": "Enter phone number",
+    "avatar": "Avatar URL",
+    "avatarPlaceholder": "Enter an avatar image URL (optional)",
+    "save": "Save profile"
+  },
+  "password": {
+    "title": "Change Password",
+    "description": "You will be signed out after changing the password. Please log in with the new password.",
+    "oldPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "oldPasswordPlaceholder": "Enter current password",
+    "newPasswordPlaceholder": "Enter a new password (at least 6 characters)",
+    "confirmPasswordPlaceholder": "Enter the new password again",
+    "submit": "Change password"
+  },
+  "validation": {
+    "realNameRequired": "Please enter a nickname",
+    "passwordMin": "Password must be at least 6 characters",
+    "passwordMismatch": "The two new passwords do not match",
+    "newPasswordSame": "The new password must be different from the current one"
+  },
+  "messages": {
+    "profileSaved": "Profile updated",
+    "passwordChanged": "Password changed, please log in with the new password"
+  }
+}

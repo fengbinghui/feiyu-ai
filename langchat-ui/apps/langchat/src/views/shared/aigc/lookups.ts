@@ -4,6 +4,7 @@ import type { LabelOption } from '#/views/shared/aigc/options';
 import { computed, ref } from 'vue';
 
 import { $t } from '@vben/locales';
+import { useAccessStore } from '@vben/stores';
 
 import { knowledgeApi } from '#/api/aigc/knowledge';
 import { mcpApi } from '#/api/aigc/mcp';
@@ -18,6 +19,15 @@ interface LookupOptions {
   skills?: boolean;
   vectorStores?: boolean;
 }
+
+/** lookups 对应的权限码：无权限时跳过请求，避免 403 干扰普通用户 */
+const LOOKUP_PERMISSIONS = {
+  knowledges: 'aigc:knowledge:list',
+  mcps: 'aigc:mcp:list',
+  models: 'aigc:model:list',
+  skills: 'aigc:skill:list',
+  vectorStores: 'aigc:vector-store:list',
+} as const;
 
 function toOption(value: number | string, label: string): LabelOption {
   return {
@@ -39,8 +49,11 @@ export function useAigcLookups(options: LookupOptions = {}) {
 
   async function loadLookups() {
     const tasks: Promise<void>[] = [];
+    const accessCodes = useAccessStore().accessCodes ?? [];
+    const canLoad = (key: keyof typeof LOOKUP_PERMISSIONS) =>
+      accessCodes.includes(LOOKUP_PERMISSIONS[key]);
 
-    if (options.models) {
+    if (options.models && canLoad('models')) {
       tasks.push(
         modelApi.list().then((items) => {
           models.value = items;
@@ -48,7 +61,7 @@ export function useAigcLookups(options: LookupOptions = {}) {
       );
     }
 
-    if (options.vectorStores) {
+    if (options.vectorStores && canLoad('vectorStores')) {
       tasks.push(
         vectorStoreApi.list().then((items) => {
           vectorStores.value = items;
@@ -56,7 +69,7 @@ export function useAigcLookups(options: LookupOptions = {}) {
       );
     }
 
-    if (options.knowledges) {
+    if (options.knowledges && canLoad('knowledges')) {
       tasks.push(
         knowledgeApi.list().then((items) => {
           knowledges.value = items;
@@ -64,7 +77,7 @@ export function useAigcLookups(options: LookupOptions = {}) {
       );
     }
 
-    if (options.mcps) {
+    if (options.mcps && canLoad('mcps')) {
       tasks.push(
         mcpApi.list().then((items) => {
           mcps.value = items;
@@ -72,7 +85,7 @@ export function useAigcLookups(options: LookupOptions = {}) {
       );
     }
 
-    if (options.skills) {
+    if (options.skills && canLoad('skills')) {
       tasks.push(
         skillApi.list().then((items) => {
           skills.value = items;

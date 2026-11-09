@@ -33,6 +33,10 @@ sa-token:
 langchat:
   # 登录失败风控（无 Redis，单机内存实现）：窗口内连续失败达到上限后锁定账号
   auth:
+    # 是否开放自助注册
+    register-enabled: ${LANGCHAT_REGISTER_ENABLED:true}
+    # 注册用户默认角色编码（对应 aigc_role.code）
+    default-role-code: ${LANGCHAT_DEFAULT_ROLE_CODE:USER}
     login-max-attempts: ${LANGCHAT_LOGIN_MAX_ATTEMPTS:5}
     login-fail-window-minutes: ${LANGCHAT_LOGIN_FAIL_WINDOW_MINUTES:10}
     login-lock-minutes: ${LANGCHAT_LOGIN_LOCK_MINUTES:10}

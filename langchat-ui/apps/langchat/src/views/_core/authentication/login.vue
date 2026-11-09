@@ -2,6 +2,7 @@
 import type { VbenFormSchema } from '@vben/common-ui';
 
 import { computed, markRaw } from 'vue';
+import { useRoute } from 'vue-router';
 
 import { AuthenticationLogin, SliderCaptcha, z } from '@vben/common-ui';
 import { $t } from '@vben/locales';
@@ -11,6 +12,15 @@ import { useAuthStore } from '#/store';
 defineOptions({ name: 'Login' });
 
 const authStore = useAuthStore();
+const route = useRoute();
+
+/** 注册成功跳回登录页时可携带 username 预填 */
+const defaultUsername = computed(() => {
+  const username = route.query.username;
+  return typeof username === 'string' && username.trim()
+    ? username.trim()
+    : 'admin';
+});
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
@@ -19,28 +29,27 @@ const formSchema = computed((): VbenFormSchema[] => {
       componentProps: {
         placeholder: $t('auth.form.usernamePlaceholder'),
       },
-      defaultValue: 'admin',
+      defaultValue: defaultUsername.value,
       fieldName: 'username',
       help: $t('auth.form.usernameHelp'),
       label: $t('authentication.username'),
       rules: z
         .string()
         .min(1, { message: $t('authentication.usernameTip') })
-        .default('admin'),
+        .default(defaultUsername.value),
     },
     {
       component: 'VbenInputPassword',
       componentProps: {
         placeholder: $t('authentication.passwordTip'),
       },
-      defaultValue: '123456',
+      defaultValue: defaultUsername.value === 'admin' ? '123456' : '',
       fieldName: 'password',
       help: $t('auth.form.passwordHelp'),
       label: $t('authentication.password'),
       rules: z
         .string()
-        .min(1, { message: $t('authentication.passwordTip') })
-        .default('123456'),
+        .min(1, { message: $t('authentication.passwordTip') }),
     },
     {
       component: markRaw(SliderCaptcha),
@@ -57,10 +66,12 @@ const formSchema = computed((): VbenFormSchema[] => {
   <AuthenticationLogin
     :form-schema="formSchema"
     :loading="authStore.loginLoading"
+    :forget-password-path="'/auth/forget-password'"
+    :register-path="'/auth/register'"
     :show-code-login="false"
-    :show-forget-password="false"
+    :show-forget-password="true"
     :show-qrcode-login="false"
-    :show-register="false"
+    :show-register="true"
     :show-third-party-login="false"
     @submit="authStore.authLogin"
   />

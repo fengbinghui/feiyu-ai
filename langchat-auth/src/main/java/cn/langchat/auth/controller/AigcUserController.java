@@ -1,9 +1,17 @@
 package cn.langchat.auth.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.langchat.auth.config.AuthProperties;
 import cn.langchat.auth.entity.AigcUser;
+import cn.langchat.auth.entity.AigcUserRole;
+import cn.langchat.auth.model.request.ResetPasswordRequest;
+import cn.langchat.auth.service.AigcUserRoleService;
 import cn.langchat.auth.service.AigcUserService;
+import cn.langchat.auth.service.AuthService;
 import cn.langchat.common.core.ApiResponse;
+import cn.langchat.common.core.CommonErrorCode;
+import cn.langchat.common.exception.BizException;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +40,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AigcUserController {
 
     private final AigcUserService aigcUserService;
+    private final AigcUserRoleService aigcUserRoleService;
+    private final AuthService authService;
+    private final AuthProperties authProperties;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping
@@ -68,7 +79,35 @@ public class AigcUserController {
     @DeleteMapping("/{id}")
     public ApiResponse<Boolean> remove(@PathVariable("id") String id) {
         log.info("删除用户，id={}", id);
-        return ApiResponse.success(aigcUserService.removeById(id));
+        AigcUser user = aigcUserService.getById(id);
+        if (user == null) {
+            return ApiResponse.success(Boolean.FALSE);
+        }
+        // 安全约束：超级管理员账号不允许删除，避免误操作导致平台失去管理员。
+        String superAdminUsername = authProperties.getSuperAdminUsername();
+        if (StringUtils.hasText(superAdminUsername) && superAdminUsername.equals(user.getUsername())) {
+            throw new BizException(CommonErrorCode.BAD_REQUEST.code(), "不能删除超级管理员账号");
+        }
+        // 级联清理用户角色关联，避免残留脏数据。
+        aigcUserRoleService.lambdaUpdate()
+                .eq(AigcUserRole::getUserId, id)
+                .remove();
+        boolean removed = aigcUserService.removeById(id);
+        log.info("删除用户完成，id={}, username={}, removed={}", id, user.getUsername(), removed);
+        return ApiResponse.success(removed);
+    }
+
+    /**
+     * 管理员重置指定用户密码（类级权限 langchat:user:list）。
+     */
+    @PostMapping("/{id}/reset-password")
+    public ApiResponse<Void> resetPassword(
+            @PathVariable("id") String id,
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        log.info("管理员重置用户密码，id={}", id);
+        authService.resetPassword(id, request);
+        return ApiResponse.success(null);
     }
 
     /**

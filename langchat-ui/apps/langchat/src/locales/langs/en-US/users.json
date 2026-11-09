@@ -63,5 +63,17 @@
   "gender": {
     "male": "Male",
     "female": "Female"
+  },
+  "resetPassword": {
+    "action": "Reset Password",
+    "title": "Reset Password",
+    "description": "Set a new login password for \"{name}\". Submitting this will also unlock the account.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "newPasswordPlaceholder": "Enter a new password (at least 6 characters)",
+    "confirmPasswordPlaceholder": "Enter the new password again",
+    "success": "Password reset, please inform the user to log in with the new password",
+    "passwordMin": "Password must be at least 6 characters",
+    "passwordMismatch": "The two passwords do not match"
   }
 }

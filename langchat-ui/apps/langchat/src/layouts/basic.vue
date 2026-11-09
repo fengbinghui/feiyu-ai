@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
 import { useWatermark } from '@vben/hooks';
-import { ChevronsLeft, ChevronsRight, Info } from '@vben/icons';
+import { ChevronsLeft, ChevronsRight, Info, UserRound } from '@vben/icons';
 import {
   BasicLayout,
   LanguageToggle,
@@ -39,6 +39,13 @@ const showDot = computed(() =>
 );
 
 const menus = computed(() => [
+  {
+    handler: () => {
+      router.push({ path: '/profile' });
+    },
+    icon: UserRound,
+    text: $t('menu.profile'),
+  },
   {
     handler: () => {
       router.push({ path: '/about' });
