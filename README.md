@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # 肥鱼AI · 企业级 AI Agent 应用平台
 
@@ -52,7 +52,26 @@
 | 模型与能力 | 模型管理、向量存储、技能管理、MCP 管理、数据源 | 多供应商模型配置；pgvector/Milvus 向量库；技能包（SKILL.md）；MCP（HTTP/STDIO）；业务数据源接入 |
 | 系统管理 | 用户、角色、菜单、操作日志 | RBAC、登录风控、只读审计日志 |
 
-## 四、架构概览
+## 四、界面预览
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/01-overview.png" alt="平台概览" /><br /><sub><b>平台概览</b> · 运行数据总览</sub></td>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/02-chat.png" alt="流式对话" /><br /><sub><b>流式对话</b> · SSE 逐字输出 / 引用 / 点赞</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/03-knowledge.png" alt="知识库" /><br /><sub><b>知识库</b> · 文档解析 / 切片 / 向量化</sub></td>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/04-agent-builder.png" alt="Agent 构建器" /><br /><sub><b>Agent 构建器</b> · 模型 / 知识库 / 技能 / MCP 编排</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/05-audit-logs.png" alt="操作审计" /><br /><sub><b>操作日志</b> · 只读审计 / 参数脱敏 / 分页筛选</sub></td>
+    <td width="50%"><img src="docs/assets/feiyu-screenshots/06-usage.png" alt="用量分析" /><br /><sub><b>用量分析</b> · Token / 耗时 / 成功率 / 配额</sub></td>
+  </tr>
+</table>
+
+> 另见公开分享页（免登录只读）：`/share/{shareId}`，页面样式见 `docs/assets/feiyu-screenshots/07-share.png`。
+
+## 五、架构概览
 
 ```
 浏览器（Vue3 + Vben + Naive UI）
@@ -72,7 +91,7 @@ langchat-server（Spring Boot 启动模块：安全 / 审计切面 / 健康检�
 
 核心对话链路：`AgentRuntimeLoader` 加载 Agent 配置 → 构建 LangChain4j `AiServices`（流式模型 + 最近 20 条记忆 + 内容检索器 + 工具）→ `TokenStream` 逐字输出 → 通过 SSE（`message.delta / rag.retrieved / tool.* / message.completed`）推送前端 → 消息与过程事件落库、Token 用量入库。
 
-## 五、本地快速开始
+## 六、本地快速开始
 
 ### 1. 环境
 
@@ -112,7 +131,7 @@ pnpm --filter @vben/web-naive dev
 
 本地演示默认管理员 `admin / 123456`（首次部署后请立即修改密码）。登录后进入「模型与能力 → 模型管理」配置模型供应商与 API Key，即可创建 Agent 并开始对话。
 
-## 六、关键实现说明（二次开发部分）
+## 七、关键实现说明（二次开发部分）
 
 - **安全基线**：Sa-Token 登录强制 + RBAC；BCrypt 密码与历史明文平滑迁移；登录失败 5 次/10 分钟锁定；模型 Key、数据源/向量库密码脱敏；文档/附件上传白名单；MCP STDIO Docker 镜像白名单；CORS 与安全响应头；改密/重置后强制 Token 失效。
 - **RAG 工程化**：Tika 解析 → 800/120 滑动窗口切片 → qwen embedding（1024 维）→ pgvector；向量检索 + 关键词检索双通道复合召回；重索引前清理旧向量（segment id + docsId 元数据双通道），避免重复向量与旧内容召回。
@@ -120,19 +139,19 @@ pnpm --filter @vben/web-naive dev
 - **Agent 工具**：LangChain4j Tool 抽象 + 技能包 + MCP（HTTP/STDIO，会话缓存与白名单）；智能问数仅允许只读 SQL + 表级授权。
 - **工程化**：AOP 操作审计（异步线程池、参数脱敏、只读分页查询、90 天自动清理）；模型调用监听（Token/耗时/成功率/配额）；11 个资源服务端分页 + 10 个请求 DTO 校验；Flyway 接管存量库；28 个单元测试 + Playwright E2E + GitHub Actions CI。
 
-## 七、项目文档
+## 八、项目文档
 
 - [项目技术详解（AI 零基础友好 + 全链路流程 + 数据模型 + 部署运维）](docs/项目技术详解-肥鱼AI.md)
 - [服务端分页与 DTO 接口契约](docs/api/stage3d-pagination.md)
 - [生产部署清单](docs/deploy/production.md)
 
-## 八、版本与回滚点
+## 九、版本与回滚点
 
 项目按阶段开发并打 tag，可随时回滚到任一阶段：
 
 `baseline-deploy-20261109` → `stage-1-security` → `stage-2-brand` → `stage-2b-fix` → `stage-2b-pages` → `stage-3a-account` → `stage-3b-chat` → `stage-3c-engineering` → `stage-3d-pagination`
 
-## 九、开源许可与致谢
+## 十、开源许可与致谢
 
 - 后端：**Apache License 2.0**（见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)）
 - 前端 UI 框架：**Vben Admin**（MIT）
