@@ -1,0 +1,66 @@
+{
+  "title": {
+    "create": "Create Knowledge Base",
+    "edit": "Edit Knowledge Base"
+  },
+  "actions": {
+    "create": "New Knowledge Base"
+  },
+  "tabs": {
+    "documents": "Documents",
+    "settings": "Knowledge Base Settings"
+  },
+  "settings": {
+    "title": "Knowledge Base Settings",
+    "description": "Manage identity, vectorization resources and retrieval behavior in one place.",
+    "basicTitle": "Basic Information",
+    "basicDescription": "Used to identify and present this knowledge base across the product.",
+    "retrievalTitle": "Vectorization & Retrieval",
+    "retrievalDescription": "Choose the model, vector store and default recall strategy for indexed documents.",
+    "namePlaceholder": "Enter a clear, recognizable knowledge base name",
+    "vectorStorePlaceholder": "Select a vector store",
+    "vectorModelPlaceholder": "Select an embedding model",
+    "maxResultsHint": "Maximum number of chunks returned per retrieval",
+    "minScoreHint": "Chunks below this similarity score are excluded",
+    "reindexHint": "Changing the embedding model or vector store does not migrate existing documents. Re-vectorize them to keep the index consistent.",
+    "save": "Save Settings",
+    "saved": "Knowledge base settings saved",
+    "validation": {
+      "name": "Enter a knowledge base name",
+      "vectorStore": "Select a vector store",
+      "vectorModel": "Select an embedding model"
+    }
+  },
+  "form": {
+    "name": "Knowledge Base Name",
+    "icon": "Knowledge Base Icon",
+    "vectorStore": "Vector Store",
+    "vectorModel": "Vector Model",
+    "maxResults": "Recall Count",
+    "minScore": "Minimum Score",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter knowledge base description"
+  },
+  "card": {
+    "unnamed": "Untitled Knowledge Base",
+    "defaultDescription": "Holds document chunks and vector recall configuration.",
+    "vectorModel": "Vector Model",
+    "vectorStore": "Vector Store",
+    "recall": "Recall",
+    "topN": "Top {count}"
+  },
+  "list": {
+    "searchPlaceholder": "Search by name, description or tags"
+  },
+  "quickActions": {
+    "title": "Knowledge Base Actions"
+  },
+  "messages": {
+    "created": "Knowledge base created",
+    "updated": "Knowledge base updated",
+    "deleted": "Knowledge base deleted",
+    "missingId": "This knowledge base is missing an ID",
+    "vectorizeSubmitted": "Batch vectorization task submitted for this knowledge base",
+    "deleteTitle": "Delete Knowledge Base"
+  }
+}
